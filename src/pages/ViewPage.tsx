@@ -132,7 +132,7 @@ export default function ViewPage() {
           {isTenantAdmin && (
             <Button
               variant="outline"
-              onClick={() => navigate(`/views/editor/${page.id}`)}
+              onClick={() => navigate(`/views/${page.id}/edit`)}
             >
               <Edit className="h-4 w-4 mr-2" />
               Editar
