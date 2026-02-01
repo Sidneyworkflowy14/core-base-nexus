@@ -11,6 +11,9 @@ import SelectTenantPage from "./pages/SelectTenant";
 import DashboardPage from "./pages/Dashboard";
 import UsersPage from "./pages/Users";
 import SuperAdminPage from "./pages/SuperAdmin";
+import SettingsPage from "./pages/Settings";
+import ViewsPage from "./pages/Views";
+import ViewPage from "./pages/ViewPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +50,30 @@ const App = () => (
                 element={
                   <ProtectedRoute requireTenant minRole="tenant_admin">
                     <UsersPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute requireTenant minRole="tenant_admin">
+                    <SettingsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/views"
+                element={
+                  <ProtectedRoute requireTenant minRole="tenant_admin">
+                    <ViewsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/views/:slug"
+                element={
+                  <ProtectedRoute requireTenant>
+                    <ViewPage />
                   </ProtectedRoute>
                 }
               />

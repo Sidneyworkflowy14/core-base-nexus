@@ -3,13 +3,13 @@ import { useTenant } from '@/contexts/TenantContext';
 import { useRoles } from '@/hooks/useRoles';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { supabase } from '@/integrations/supabase/client';
+import { AppLayout } from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Link } from 'react-router-dom';
 import { AppRole, Membership } from '@/types/auth';
 
 interface MembershipWithEmail extends Membership {
@@ -40,7 +40,6 @@ export default function UsersPage() {
 
       if (error) throw error;
       
-      // Format the data
       const formattedMembers: MembershipWithEmail[] = (data || []).map((m) => ({
         id: m.id,
         tenant_id: m.tenant_id,
@@ -70,8 +69,6 @@ export default function UsersPage() {
     setSuccess(null);
 
     try {
-      // Note: In a real app, you'd send an invite email via edge function
-      // For now, we'll show a message that the user needs to sign up first
       setSuccess(`Para adicionar ${inviteEmail}, o usuário precisa criar uma conta primeiro. Use uma edge function para enviar convites.`);
       await log({
         action: 'invite_attempted',
@@ -137,23 +134,18 @@ export default function UsersPage() {
 
   if (!currentTenant) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <AppLayout>
         <div className="text-muted-foreground">Selecione uma organização primeiro.</div>
-      </div>
+      </AppLayout>
     );
   }
 
   return (
-    <div className="min-h-screen p-6">
-      <div className="mx-auto max-w-4xl space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold">Usuários</h1>
-            <p className="text-muted-foreground">{currentTenant.name}</p>
-          </div>
-          <Button variant="outline" asChild>
-            <Link to="/dashboard">Voltar</Link>
-          </Button>
+    <AppLayout>
+      <div className="max-w-4xl space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold">Usuários</h1>
+          <p className="text-muted-foreground">{currentTenant.name}</p>
         </div>
 
         {isTenantAdmin && (
@@ -277,6 +269,6 @@ export default function UsersPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </AppLayout>
   );
 }

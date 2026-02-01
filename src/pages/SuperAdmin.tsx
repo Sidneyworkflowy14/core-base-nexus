@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react';
 import { useRoles } from '@/hooks/useRoles';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { supabase } from '@/integrations/supabase/client';
+import { AppLayout } from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Link } from 'react-router-dom';
 import { Tenant } from '@/types/auth';
 
 export default function SuperAdminPage() {
@@ -101,23 +101,18 @@ export default function SuperAdminPage() {
 
   if (!isSuperAdmin) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <AppLayout>
         <div className="text-destructive">Acesso negado. Apenas super admins.</div>
-      </div>
+      </AppLayout>
     );
   }
 
   return (
-    <div className="min-h-screen p-6">
-      <div className="mx-auto max-w-4xl space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold">Super Admin</h1>
-            <p className="text-muted-foreground">Gerenciamento global</p>
-          </div>
-          <Button variant="outline" asChild>
-            <Link to="/dashboard">Voltar</Link>
-          </Button>
+    <AppLayout>
+      <div className="max-w-4xl space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold">Super Admin</h1>
+          <p className="text-muted-foreground">Gerenciamento global</p>
         </div>
 
         <Card>
@@ -220,6 +215,6 @@ export default function SuperAdminPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </AppLayout>
   );
 }
