@@ -4,15 +4,27 @@ import { useTenant } from '@/contexts/TenantContext';
 import { usePages } from '@/hooks/usePages';
 import { useDataSources } from '@/hooks/useDataSources';
 import { AppLayout } from '@/components/AppLayout';
-import { Button } from '@/components/ui/button';
+import { 
+  NexusButton, 
+  NexusCard, 
+  NexusCardHeader, 
+  NexusCardTitle, 
+  NexusCardDescription, 
+  NexusCardContent,
+  NexusBadge,
+  NexusTable,
+  NexusTableHeader,
+  NexusTableBody,
+  NexusTableRow,
+  NexusTableHead,
+  NexusTableCell,
+} from '@/components/nexus';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Trash, Edit, Eye, Database } from 'lucide-react';
+import { Plus, Trash, Edit, Eye, Database, FileText } from 'lucide-react';
 import { FilterParam } from '@/types/builder';
 
 export default function ViewsPage() {
@@ -57,7 +69,6 @@ export default function ViewsPage() {
         setDialogOpen(false);
         setNewPage({ title: '', slug: '', has_filters: false, data_source_id: '' });
         setFilterParams([]);
-        // Navigate to editor
         navigate(`/views/${page.id}/edit`);
       }
     } catch (err: any) {
@@ -101,18 +112,24 @@ export default function ViewsPage() {
 
   return (
     <AppLayout>
-      <div className="max-w-4xl space-y-6">
+      <div className="max-w-5xl space-y-6">
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">Views (Páginas)</h1>
-            <p className="text-muted-foreground">Crie e edite páginas com o builder</p>
+            <div className="flex items-center gap-3">
+              <FileText className="h-7 w-7 text-primary" />
+              <h1 className="text-2xl font-semibold">Views (Páginas)</h1>
+            </div>
+            <p className="text-muted-foreground mt-1">
+              Crie e edite páginas com o builder visual
+            </p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <NexusButton>
                 <Plus className="h-4 w-4 mr-2" />
                 Nova Página
-              </Button>
+              </NexusButton>
             </DialogTrigger>
             <DialogContent className="max-w-lg">
               <DialogHeader>
@@ -179,9 +196,9 @@ export default function ViewsPage() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label>Parâmetros de Filtro</Label>
-                      <Button size="sm" variant="outline" onClick={addFilterParam}>
+                      <NexusButton size="sm" variant="outline" onClick={addFilterParam}>
                         <Plus className="h-3 w-3 mr-1" /> Adicionar
-                      </Button>
+                      </NexusButton>
                     </div>
                     {filterParams.map((param, idx) => (
                       <div key={idx} className="flex gap-2">
@@ -210,13 +227,13 @@ export default function ViewsPage() {
                             <SelectItem value="select">Select</SelectItem>
                           </SelectContent>
                         </Select>
-                        <Button
+                        <NexusButton
                           size="icon"
                           variant="ghost"
                           onClick={() => removeFilterParam(idx)}
                         >
                           <Trash className="h-3 w-3" />
-                        </Button>
+                        </NexusButton>
                       </div>
                     ))}
                   </div>
@@ -229,73 +246,74 @@ export default function ViewsPage() {
                 )}
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                <NexusButton variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancelar
-                </Button>
-                <Button onClick={handleCreate} disabled={creating}>
-                  {creating ? 'Criando...' : 'Criar e Editar'}
-                </Button>
+                </NexusButton>
+                <NexusButton onClick={handleCreate} loading={creating}>
+                  Criar e Editar
+                </NexusButton>
               </DialogFooter>
             </DialogContent>
           </Dialog>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Páginas</CardTitle>
-            <CardDescription>
+        {/* Pages Table */}
+        <NexusCard>
+          <NexusCardHeader>
+            <NexusCardTitle>Páginas</NexusCardTitle>
+            <NexusCardDescription>
               Páginas criadas com o builder visual
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            </NexusCardDescription>
+          </NexusCardHeader>
+          <NexusCardContent>
             {loading ? (
-              <div className="text-muted-foreground">Carregando...</div>
+              <div className="text-muted-foreground py-8 text-center">Carregando...</div>
             ) : pages.length === 0 ? (
-              <div className="text-muted-foreground">Nenhuma página criada ainda.</div>
+              <div className="text-muted-foreground py-8 text-center">
+                Nenhuma página criada ainda. Clique em "Nova Página" para começar.
+              </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Título</TableHead>
-                    <TableHead>Slug</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Versão</TableHead>
-                    <TableHead>Atualizada</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <NexusTable>
+                <NexusTableHeader>
+                  <NexusTableRow>
+                    <NexusTableHead>Título</NexusTableHead>
+                    <NexusTableHead>Slug</NexusTableHead>
+                    <NexusTableHead>Status</NexusTableHead>
+                    <NexusTableHead>Versão</NexusTableHead>
+                    <NexusTableHead>Atualizada</NexusTableHead>
+                    <NexusTableHead>Ações</NexusTableHead>
+                  </NexusTableRow>
+                </NexusTableHeader>
+                <NexusTableBody>
                   {pages.map((page) => (
-                    <TableRow key={page.id}>
-                      <TableCell className="font-medium">{page.title}</TableCell>
-                      <TableCell className="font-mono text-sm">{page.slug}</TableCell>
-                      <TableCell>
-                        <span
-                          className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
-                            page.status === 'published'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}
-                        >
+                    <NexusTableRow key={page.id}>
+                      <NexusTableCell className="font-medium">{page.title}</NexusTableCell>
+                      <NexusTableCell className="font-mono text-sm text-muted-foreground">
+                        /{page.slug}
+                      </NexusTableCell>
+                      <NexusTableCell>
+                        <NexusBadge variant={page.status === 'published' ? 'success' : 'warning'}>
                           {page.status === 'published' ? 'Publicada' : 'Rascunho'}
-                        </span>
-                      </TableCell>
-                      <TableCell>v{page.version}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
+                        </NexusBadge>
+                      </NexusTableCell>
+                      <NexusTableCell>
+                        <NexusBadge variant="muted">v{page.version}</NexusBadge>
+                      </NexusTableCell>
+                      <NexusTableCell className="text-muted-foreground text-sm">
                         {new Date(page.updated_at).toLocaleDateString('pt-BR')}
-                      </TableCell>
-                      <TableCell>
+                      </NexusTableCell>
+                      <NexusTableCell>
                         <div className="flex gap-1">
-                          <Button
-                            size="icon"
+                          <NexusButton
+                            size="icon-sm"
                             variant="ghost"
                             onClick={() => navigate(`/views/${page.id}/edit`)}
                             title="Editar"
                           >
                             <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
+                          </NexusButton>
+                          <NexusButton
+                            size="icon-sm"
                             variant="ghost"
                             asChild
                             title="Visualizar"
@@ -303,42 +321,42 @@ export default function ViewsPage() {
                             <Link to={`/views/${page.slug}`}>
                               <Eye className="h-4 w-4" />
                             </Link>
-                          </Button>
-                          <Button
-                            size="icon"
+                          </NexusButton>
+                          <NexusButton
+                            size="icon-sm"
                             variant="ghost"
                             onClick={() => handleDelete(page.id)}
                             title="Excluir"
                           >
                             <Trash className="h-4 w-4 text-destructive" />
-                          </Button>
+                          </NexusButton>
                         </div>
-                      </TableCell>
-                    </TableRow>
+                      </NexusTableCell>
+                    </NexusTableRow>
                   ))}
-                </TableBody>
-              </Table>
+                </NexusTableBody>
+              </NexusTable>
             )}
-          </CardContent>
-        </Card>
+          </NexusCardContent>
+        </NexusCard>
 
         {/* Link to Data Sources */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Database className="h-5 w-5" />
+        <NexusCard>
+          <NexusCardHeader>
+            <NexusCardTitle className="flex items-center gap-2">
+              <Database className="h-5 w-5 text-primary" />
               Data Sources
-            </CardTitle>
-            <CardDescription>
+            </NexusCardTitle>
+            <NexusCardDescription>
               Configure fontes de dados para suas páginas
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button variant="outline" asChild>
+            </NexusCardDescription>
+          </NexusCardHeader>
+          <NexusCardContent>
+            <NexusButton variant="outline" asChild>
               <Link to="/data-sources">Gerenciar Data Sources</Link>
-            </Button>
-          </CardContent>
-        </Card>
+            </NexusButton>
+          </NexusCardContent>
+        </NexusCard>
       </div>
     </AppLayout>
   );

@@ -45,6 +45,8 @@ import {
   Grid,
   List,
   Table,
+  Palette,
+  Shield,
   LucideIcon,
 } from 'lucide-react';
 
@@ -95,6 +97,8 @@ const iconMap: Record<string, LucideIcon> = {
   grid: Grid,
   list: List,
   table: Table,
+  palette: Palette,
+  shield: Shield,
 };
 
 interface DynamicIconProps {

@@ -4,16 +4,27 @@ import { useTenant } from '@/contexts/TenantContext';
 import { useNavItems } from '@/hooks/useNavItems';
 import { usePages } from '@/hooks/usePages';
 import { AppLayout } from '@/components/AppLayout';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { 
+  NexusButton, 
+  NexusCard, 
+  NexusCardHeader, 
+  NexusCardTitle, 
+  NexusCardDescription, 
+  NexusCardContent,
+  NexusInput,
+  NexusTable,
+  NexusTableHeader,
+  NexusTableBody,
+  NexusTableRow,
+  NexusTableHead,
+  NexusTableCell,
+} from '@/components/nexus';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AVAILABLE_ICONS, IconName } from '@/types/nav';
 import { DynamicIcon } from '@/components/DynamicIcon';
-import { ArrowUp, ArrowDown, Trash, Plus } from 'lucide-react';
+import { ArrowUp, ArrowDown, Trash, Plus, Settings, Palette } from 'lucide-react';
 
 export default function SettingsPage() {
   const { currentTenant } = useTenant();
@@ -91,22 +102,47 @@ export default function SettingsPage() {
   return (
     <AppLayout>
       <div className="max-w-4xl space-y-6">
+        {/* Header */}
         <div>
-          <h1 className="text-2xl font-semibold">Configurações</h1>
-          <p className="text-muted-foreground">{currentTenant.name}</p>
+          <div className="flex items-center gap-3">
+            <Settings className="h-7 w-7 text-primary" />
+            <h1 className="text-2xl font-semibold">Configurações</h1>
+          </div>
+          <p className="text-muted-foreground mt-1">{currentTenant.name}</p>
         </div>
 
+        {/* Brand Settings Link */}
+        <NexusCard>
+          <NexusCardHeader>
+            <NexusCardTitle className="flex items-center gap-2">
+              <Palette className="h-5 w-5" />
+              Personalização Visual
+            </NexusCardTitle>
+            <NexusCardDescription>
+              Customize cores, fonte e estilo do seu workspace
+            </NexusCardDescription>
+          </NexusCardHeader>
+          <NexusCardContent>
+            <NexusButton asChild>
+              <Link to="/settings/brand">
+                <Palette className="h-4 w-4 mr-2" />
+                Abrir Brand Settings
+              </Link>
+            </NexusButton>
+          </NexusCardContent>
+        </NexusCard>
+
         {/* Add new nav item */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Adicionar item ao menu</CardTitle>
-            <CardDescription>Crie um novo item para a sidebar</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <NexusCard>
+          <NexusCardHeader>
+            <NexusCardTitle>Adicionar item ao menu</NexusCardTitle>
+            <NexusCardDescription>Crie um novo item para a sidebar</NexusCardDescription>
+          </NexusCardHeader>
+          <NexusCardContent>
             <form onSubmit={handleCreate} className="flex gap-4 items-end">
               <div className="flex-1 space-y-2">
                 <Label htmlFor="title">Título</Label>
-                <Input
+                <NexusInput
                   id="title"
                   value={newItem.title}
                   onChange={(e) => setNewItem({ ...newItem, title: e.target.value })}
@@ -137,7 +173,7 @@ export default function SettingsPage() {
               </div>
               <div className="flex-1 space-y-2">
                 <Label htmlFor="route">Rota</Label>
-                <Input
+                <NexusInput
                   id="route"
                   value={newItem.route}
                   onChange={(e) => setNewItem({ ...newItem, route: e.target.value })}
@@ -145,113 +181,117 @@ export default function SettingsPage() {
                   required
                 />
               </div>
-              <Button type="submit" disabled={creating}>
+              <NexusButton type="submit" loading={creating}>
                 <Plus className="h-4 w-4 mr-2" />
                 Adicionar
-              </Button>
+              </NexusButton>
             </form>
             {pages.length > 0 && (
               <p className="mt-2 text-xs text-muted-foreground">
                 Pages disponíveis: {pages.map((p) => `/views/${p.slug}`).join(', ')}
               </p>
             )}
-          </CardContent>
-        </Card>
+          </NexusCardContent>
+        </NexusCard>
 
         {/* Nav items list */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Itens do Menu</CardTitle>
-            <CardDescription>Gerencie os itens da sidebar do tenant</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <NexusCard>
+          <NexusCardHeader>
+            <NexusCardTitle>Itens do Menu</NexusCardTitle>
+            <NexusCardDescription>Gerencie os itens da sidebar do tenant</NexusCardDescription>
+          </NexusCardHeader>
+          <NexusCardContent>
             {loading ? (
-              <div className="text-muted-foreground">Carregando...</div>
+              <div className="text-muted-foreground py-8 text-center">Carregando...</div>
             ) : navItems.length === 0 ? (
-              <div className="text-muted-foreground">Nenhum item personalizado ainda.</div>
+              <div className="text-muted-foreground py-8 text-center">
+                Nenhum item personalizado ainda.
+              </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Ordem</TableHead>
-                    <TableHead>Ícone</TableHead>
-                    <TableHead>Título</TableHead>
-                    <TableHead>Rota</TableHead>
-                    <TableHead>Visível</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <NexusTable>
+                <NexusTableHeader>
+                  <NexusTableRow>
+                    <NexusTableHead>Ordem</NexusTableHead>
+                    <NexusTableHead>Ícone</NexusTableHead>
+                    <NexusTableHead>Título</NexusTableHead>
+                    <NexusTableHead>Rota</NexusTableHead>
+                    <NexusTableHead>Visível</NexusTableHead>
+                    <NexusTableHead>Ações</NexusTableHead>
+                  </NexusTableRow>
+                </NexusTableHeader>
+                <NexusTableBody>
                   {navItems.map((item, index) => (
-                    <TableRow key={item.id}>
-                      <TableCell>
+                    <NexusTableRow key={item.id}>
+                      <NexusTableCell>
                         <div className="flex gap-1">
-                          <Button
+                          <NexusButton
                             variant="ghost"
-                            size="icon"
+                            size="icon-sm"
                             onClick={() => handleMoveUp(index)}
                             disabled={index === 0}
                           >
                             <ArrowUp className="h-4 w-4" />
-                          </Button>
-                          <Button
+                          </NexusButton>
+                          <NexusButton
                             variant="ghost"
-                            size="icon"
+                            size="icon-sm"
                             onClick={() => handleMoveDown(index)}
                             disabled={index === navItems.length - 1}
                           >
                             <ArrowDown className="h-4 w-4" />
-                          </Button>
+                          </NexusButton>
                         </div>
-                      </TableCell>
-                      <TableCell>
+                      </NexusTableCell>
+                      <NexusTableCell>
                         <DynamicIcon name={item.icon} className="h-4 w-4" />
-                      </TableCell>
-                      <TableCell>{item.title}</TableCell>
-                      <TableCell className="font-mono text-sm">{item.route}</TableCell>
-                      <TableCell>
+                      </NexusTableCell>
+                      <NexusTableCell className="font-medium">{item.title}</NexusTableCell>
+                      <NexusTableCell className="font-mono text-sm text-muted-foreground">
+                        {item.route}
+                      </NexusTableCell>
+                      <NexusTableCell>
                         <Switch
                           checked={item.is_visible}
                           onCheckedChange={() => handleToggleVisibility(item.id, item.is_visible)}
                         />
-                      </TableCell>
-                      <TableCell>
-                        <Button
+                      </NexusTableCell>
+                      <NexusTableCell>
+                        <NexusButton
                           variant="ghost"
-                          size="icon"
+                          size="icon-sm"
                           onClick={() => handleDelete(item.id)}
                         >
                           <Trash className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
+                        </NexusButton>
+                      </NexusTableCell>
+                    </NexusTableRow>
                   ))}
-                </TableBody>
-              </Table>
+                </NexusTableBody>
+              </NexusTable>
             )}
-          </CardContent>
-        </Card>
+          </NexusCardContent>
+        </NexusCard>
 
         {/* Tenant info */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Informações do Tenant</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex justify-between">
+        <NexusCard>
+          <NexusCardHeader>
+            <NexusCardTitle>Informações do Tenant</NexusCardTitle>
+          </NexusCardHeader>
+          <NexusCardContent className="space-y-3">
+            <div className="flex justify-between py-2 border-b border-border">
               <span className="text-muted-foreground">ID:</span>
               <span className="font-mono text-sm">{currentTenant.id}</span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between py-2 border-b border-border">
               <span className="text-muted-foreground">Nome:</span>
-              <span>{currentTenant.name}</span>
+              <span className="font-medium">{currentTenant.name}</span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between py-2">
               <span className="text-muted-foreground">Status:</span>
-              <span>{currentTenant.status}</span>
+              <span className="font-medium capitalize">{currentTenant.status}</span>
             </div>
-          </CardContent>
-        </Card>
+          </NexusCardContent>
+        </NexusCard>
       </div>
     </AppLayout>
   );

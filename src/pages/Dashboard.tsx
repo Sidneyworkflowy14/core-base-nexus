@@ -4,9 +4,9 @@ import { useRoles } from '@/hooks/useRoles';
 import { useDashboard } from '@/hooks/useDashboard';
 import { AppLayout } from '@/components/AppLayout';
 import { DashboardGrid } from '@/components/dashboard/DashboardGrid';
-import { Button } from '@/components/ui/button';
+import { NexusButton, NexusBadge } from '@/components/nexus';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, LayoutGrid } from 'lucide-react';
+import { Settings, LayoutGrid, Sparkles } from 'lucide-react';
 
 export default function DashboardPage() {
   const { currentTenant } = useTenant();
@@ -35,7 +35,9 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <AppLayout>
-        <div className="text-muted-foreground">Carregando dashboard...</div>
+        <div className="flex items-center justify-center h-64 text-muted-foreground">
+          Carregando dashboard...
+        </div>
       </AppLayout>
     );
   }
@@ -45,22 +47,31 @@ export default function DashboardPage() {
   return (
     <AppLayout>
       <div className="space-y-6">
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">Dashboard</h1>
-            <p className="text-muted-foreground">{currentTenant.name}</p>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-semibold">Dashboard</h1>
+              <NexusBadge variant="success" className="flex items-center gap-1">
+                <Sparkles className="h-3 w-3" />
+                {currentTenant.name}
+              </NexusBadge>
+            </div>
+            <p className="text-muted-foreground mt-1">
+              Bem-vindo de volta! Aqui está uma visão geral.
+            </p>
           </div>
 
           {isTenantAdmin && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               {isEditing && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 bg-muted rounded-lg px-3 py-2">
                   <span className="text-sm text-muted-foreground">Colunas:</span>
                   <Select 
                     value={String(columns)} 
                     onValueChange={(v) => updateLayout({ columns: parseInt(v) })}
                   >
-                    <SelectTrigger className="w-20">
+                    <SelectTrigger className="w-16 h-8">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -72,8 +83,8 @@ export default function DashboardPage() {
                   </Select>
                 </div>
               )}
-              <Button 
-                variant={isEditing ? 'default' : 'outline'} 
+              <NexusButton 
+                variant={isEditing ? 'primary' : 'outline'} 
                 onClick={() => setIsEditing(!isEditing)}
               >
                 {isEditing ? (
@@ -87,11 +98,12 @@ export default function DashboardPage() {
                     Editar Dashboard
                   </>
                 )}
-              </Button>
+              </NexusButton>
             </div>
           )}
         </div>
 
+        {/* Dashboard Grid */}
         <DashboardGrid
           widgets={widgets}
           isEditing={isEditing}
