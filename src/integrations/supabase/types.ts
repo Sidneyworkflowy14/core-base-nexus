@@ -406,6 +406,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_all_users: {
+        Args: never
+        Returns: {
+          created_at: string
+          email: string
+          id: string
+        }[]
+      }
       get_user_tenant_ids: { Args: { _user_id: string }; Returns: string[] }
       has_tenant_role: {
         Args: {
