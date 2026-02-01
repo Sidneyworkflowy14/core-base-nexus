@@ -6,12 +6,14 @@ import { useDataSources } from '@/hooks/useDataSources';
 import { useRoles } from '@/hooks/useRoles';
 import { AppLayout } from '@/components/AppLayout';
 import { BlockRenderer } from '@/components/builder/BlockRenderer';
+import { ElementorPageRenderer } from '@/components/elementor/ElementorPageRenderer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Page, Block, FilterParam } from '@/types/builder';
-import { Edit, Eye } from 'lucide-react';
+import { Section } from '@/types/elementor';
+import { Edit } from 'lucide-react';
 import { NexusBadge } from '@/components/nexus';
 
 export default function ViewPage() {
@@ -117,7 +119,12 @@ export default function ViewPage() {
     );
   }
 
+  // Support both old (blocks) and new (sections) schema formats
+  const sections = (page.schema_json as any)?.sections as Section[] | undefined;
   const sortedBlocks = [...(page.schema_json.blocks || [])].sort((a, b) => a.order - b.order);
+  const hasElementorContent = sections && sections.length > 0;
+  const hasBlockContent = sortedBlocks.length > 0;
+  const hasContent = hasElementorContent || hasBlockContent;
 
   return (
     <AppLayout>
@@ -169,8 +176,8 @@ export default function ViewPage() {
           </Card>
         )}
 
-        {/* Blocks */}
-        {sortedBlocks.length === 0 ? (
+        {/* Content */}
+        {!hasContent ? (
           <Card>
             <CardContent className="py-8">
               <p className="text-muted-foreground text-center">
@@ -178,6 +185,8 @@ export default function ViewPage() {
               </p>
             </CardContent>
           </Card>
+        ) : hasElementorContent ? (
+          <ElementorPageRenderer sections={sections} previewData={data} />
         ) : (
           <div className="space-y-4">
             {sortedBlocks.map((block: Block) => (
