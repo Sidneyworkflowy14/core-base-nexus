@@ -160,8 +160,10 @@ export interface WidgetSettings {
   // Data URL binding (for KPI, Chart, Table)
   dataUrl?: string;
   dataUrlFields?: string[];  // Fields available from the URL response
+  dataUrlMetrics?: string[];  // Metrics available when using label/value format
   selectedValueField?: string;  // Which field to use for value
   selectedLabelField?: string;  // Which field to use for label (charts)
+  selectedMetric?: string;  // Which metric (label value) to use for label/value format
   refreshInterval?: number;  // Auto-refresh interval in seconds (0 = manual)
 }
 
