@@ -21,8 +21,17 @@ import {
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Building2, Users, UserPlus, Trash2, Edit, Mail, Shield, Crown, User } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Building2, Users, UserPlus, Trash2, Edit, Check, ChevronsUpDown, Shield, Crown, User } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+
+interface SystemUser {
+  id: string;
+  email: string;
+  created_at: string;
+}
 
 interface TenantMember {
   id: string;
@@ -42,22 +51,35 @@ interface TenantDetailsModalProps {
 export function TenantDetailsModal({ tenant, open, onClose, onTenantUpdated }: TenantDetailsModalProps) {
   const { log } = useAuditLog();
   const [members, setMembers] = useState<TenantMember[]>([]);
+  const [allUsers, setAllUsers] = useState<SystemUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState('');
   
   // Add member state
   const [addingMember, setAddingMember] = useState(false);
-  const [newMemberEmail, setNewMemberEmail] = useState('');
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [newMemberRole, setNewMemberRole] = useState<AppRole>('tenant_user');
   const [submitting, setSubmitting] = useState(false);
+  const [userComboOpen, setUserComboOpen] = useState(false);
 
   useEffect(() => {
     if (tenant && open) {
       setNewName(tenant.name);
       fetchMembers();
+      fetchAllUsers();
     }
   }, [tenant, open]);
+
+  const fetchAllUsers = async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_all_users');
+      if (error) throw error;
+      setAllUsers((data || []) as SystemUser[]);
+    } catch (err) {
+      console.error('Error fetching users:', err);
+    }
+  };
 
   const fetchMembers = async () => {
     if (!tenant) return;
@@ -73,15 +95,17 @@ export function TenantDetailsModal({ tenant, open, onClose, onTenantUpdated }: T
 
       if (error) throw error;
 
-      // For now, we'll just show user_id since we can't query auth.users directly
-      // In production, you'd use an edge function to get user emails
-      const formattedMembers: TenantMember[] = (memberships || []).map(m => ({
-        id: m.id,
-        user_id: m.user_id,
-        role: m.role as AppRole,
-        created_at: m.created_at,
-        email: undefined, // Would be fetched from auth.users via edge function
-      }));
+      // Map with user emails from allUsers
+      const formattedMembers: TenantMember[] = (memberships || []).map(m => {
+        const user = allUsers.find(u => u.id === m.user_id);
+        return {
+          id: m.id,
+          user_id: m.user_id,
+          role: m.role as AppRole,
+          created_at: m.created_at,
+          email: user?.email,
+        };
+      });
 
       setMembers(formattedMembers);
     } catch (err) {
@@ -91,6 +115,16 @@ export function TenantDetailsModal({ tenant, open, onClose, onTenantUpdated }: T
       setLoading(false);
     }
   };
+
+  // Re-fetch members when allUsers changes to update emails
+  useEffect(() => {
+    if (allUsers.length > 0 && members.length > 0) {
+      setMembers(prev => prev.map(m => ({
+        ...m,
+        email: allUsers.find(u => u.id === m.user_id)?.email,
+      })));
+    }
+  }, [allUsers]);
 
   const handleUpdateName = async () => {
     if (!tenant || !newName.trim()) return;
@@ -123,32 +157,16 @@ export function TenantDetailsModal({ tenant, open, onClose, onTenantUpdated }: T
   };
 
   const handleAddMember = async () => {
-    if (!tenant || !newMemberEmail.trim()) return;
+    if (!tenant || !selectedUserId) return;
 
     setSubmitting(true);
     try {
-      // First, we need to find the user by email
-      // Since we can't query auth.users directly from the client,
-      // we'll attempt to add by user_id if provided, or show instructions
-      
-      // For now, let's assume the email is actually a user_id (UUID)
-      // In production, you'd use an edge function to look up the user
-      const userId = newMemberEmail.trim();
-      
-      // Check if it's a valid UUID
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(userId)) {
-        toast.error('Por favor, insira um User ID válido (UUID). Para encontrar o User ID, acesse o Supabase Dashboard > Auth > Users.');
-        setSubmitting(false);
-        return;
-      }
-
       // Check if membership already exists
       const { data: existing } = await supabase
         .from('memberships')
         .select('id')
         .eq('tenant_id', tenant.id)
-        .eq('user_id', userId)
+        .eq('user_id', selectedUserId)
         .single();
 
       if (existing) {
@@ -162,7 +180,7 @@ export function TenantDetailsModal({ tenant, open, onClose, onTenantUpdated }: T
         .from('memberships')
         .insert({
           tenant_id: tenant.id,
-          user_id: userId,
+          user_id: selectedUserId,
           role: newMemberRole,
         });
 
@@ -171,21 +189,17 @@ export function TenantDetailsModal({ tenant, open, onClose, onTenantUpdated }: T
       await log({
         action: 'member_added',
         entity: 'membership',
-        metadata: { tenant_id: tenant.id, user_id: userId, role: newMemberRole },
+        metadata: { tenant_id: tenant.id, user_id: selectedUserId, role: newMemberRole },
       });
 
       toast.success('Membro adicionado');
-      setNewMemberEmail('');
+      setSelectedUserId('');
       setNewMemberRole('tenant_user');
       setAddingMember(false);
       fetchMembers();
     } catch (err: any) {
       console.error('Error adding member:', err);
-      if (err.message?.includes('violates foreign key')) {
-        toast.error('Usuário não encontrado. Verifique o User ID.');
-      } else {
-        toast.error('Erro ao adicionar membro');
-      }
+      toast.error('Erro ao adicionar membro');
     } finally {
       setSubmitting(false);
     }
@@ -254,16 +268,12 @@ export function TenantDetailsModal({ tenant, open, onClose, onTenantUpdated }: T
     }
   };
 
-  const getRoleLabel = (role: AppRole) => {
-    switch (role) {
-      case 'superadmin':
-        return 'Super Admin';
-      case 'tenant_admin':
-        return 'Admin';
-      default:
-        return 'Usuário';
-    }
-  };
+  // Get users that are not already members
+  const availableUsers = allUsers.filter(
+    user => !members.some(m => m.user_id === user.id)
+  );
+
+  const selectedUser = allUsers.find(u => u.id === selectedUserId);
 
   if (!tenant) return null;
 
@@ -356,15 +366,50 @@ export function TenantDetailsModal({ tenant, open, onClose, onTenantUpdated }: T
                   </div>
                   <div className="grid gap-3">
                     <div className="space-y-1">
-                      <Label className="text-xs">User ID (UUID)</Label>
-                      <NexusInput
-                        value={newMemberEmail}
-                        onChange={(e) => setNewMemberEmail(e.target.value)}
-                        placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Encontre o User ID no Supabase Dashboard → Auth → Users
-                      </p>
+                      <Label className="text-xs">Usuário</Label>
+                      <Popover open={userComboOpen} onOpenChange={setUserComboOpen}>
+                        <PopoverTrigger asChild>
+                          <button
+                            role="combobox"
+                            aria-expanded={userComboOpen}
+                            className={cn(
+                              "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                              !selectedUserId && "text-muted-foreground"
+                            )}
+                          >
+                            {selectedUser?.email || "Selecione um usuário..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[400px] p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder="Buscar usuário por email..." />
+                            <CommandList>
+                              <CommandEmpty>Nenhum usuário encontrado.</CommandEmpty>
+                              <CommandGroup>
+                                {availableUsers.map((user) => (
+                                  <CommandItem
+                                    key={user.id}
+                                    value={user.email}
+                                    onSelect={() => {
+                                      setSelectedUserId(user.id);
+                                      setUserComboOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        selectedUserId === user.id ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    <span>{user.email}</span>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Papel</Label>
@@ -380,10 +425,10 @@ export function TenantDetailsModal({ tenant, open, onClose, onTenantUpdated }: T
                       </Select>
                     </div>
                     <div className="flex gap-2">
-                      <NexusButton size="sm" onClick={handleAddMember} loading={submitting}>
+                      <NexusButton size="sm" onClick={handleAddMember} loading={submitting} disabled={!selectedUserId}>
                         Adicionar
                       </NexusButton>
-                      <NexusButton size="sm" variant="ghost" onClick={() => setAddingMember(false)}>
+                      <NexusButton size="sm" variant="ghost" onClick={() => { setAddingMember(false); setSelectedUserId(''); }}>
                         Cancelar
                       </NexusButton>
                     </div>
@@ -401,7 +446,7 @@ export function TenantDetailsModal({ tenant, open, onClose, onTenantUpdated }: T
                 <NexusTable>
                   <NexusTableHeader>
                     <NexusTableRow>
-                      <NexusTableHead>User ID</NexusTableHead>
+                      <NexusTableHead>Usuário</NexusTableHead>
                       <NexusTableHead>Papel</NexusTableHead>
                       <NexusTableHead>Desde</NexusTableHead>
                       <NexusTableHead>Ações</NexusTableHead>
@@ -410,8 +455,13 @@ export function TenantDetailsModal({ tenant, open, onClose, onTenantUpdated }: T
                   <NexusTableBody>
                     {members.map((member) => (
                       <NexusTableRow key={member.id}>
-                        <NexusTableCell className="font-mono text-xs">
-                          {member.user_id.slice(0, 8)}...
+                        <NexusTableCell>
+                          <div className="flex flex-col">
+                            <span className="text-sm">{member.email || 'Email não disponível'}</span>
+                            <span className="text-xs text-muted-foreground font-mono">
+                              {member.user_id.slice(0, 8)}...
+                            </span>
+                          </div>
                         </NexusTableCell>
                         <NexusTableCell>
                           <div className="flex items-center gap-2">
