@@ -91,6 +91,14 @@ const App = () => (
                   }
                 />
                 <Route
+                  path="/views/editor/:id"
+                  element={
+                    <ProtectedRoute requireTenant minRole="tenant_admin">
+                      <PageEditorPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/views/:slug"
                   element={
                     <ProtectedRoute requireTenant>
