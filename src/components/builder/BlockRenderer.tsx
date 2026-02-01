@@ -1,7 +1,8 @@
-import { Block, HeadingBlock, TextBlock, TableBlock, KpiBlock, ChartBlock } from '@/types/builder';
+import { Block, HeadingBlock, TextBlock, TableBlock, KpiBlock, ChartBlock, HtmlBlock } from '@/types/builder';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { useEffect, useRef, useMemo } from 'react';
 
 interface BlockRendererProps {
   block: Block;
@@ -224,6 +225,85 @@ function ChartRenderer({ block, data }: { block: ChartBlock; data?: unknown }) {
   );
 }
 
+// Process template variables in HTML
+function processTemplate(html: string, data: unknown): string {
+  if (!data) return html;
+  
+  const dataObj = Array.isArray(data) ? data[0] : data;
+  if (!dataObj || typeof dataObj !== 'object') return html;
+  
+  return html.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+    const value = (dataObj as Record<string, unknown>)[key];
+    return value !== undefined ? String(value) : match;
+  });
+}
+
+function HtmlRenderer({ block, data }: { block: HtmlBlock; data?: unknown }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const styleId = useMemo(() => `style-${block.id}`, [block.id]);
+  
+  // Process HTML with template variables
+  const processedHtml = useMemo(() => {
+    return processTemplate(block.props.html, data);
+  }, [block.props.html, data]);
+  
+  // Inject scoped CSS
+  useEffect(() => {
+    if (!block.props.css) return;
+    
+    // Remove existing style if any
+    const existingStyle = document.getElementById(styleId);
+    if (existingStyle) {
+      existingStyle.remove();
+    }
+    
+    // Create scoped styles
+    const styleElement = document.createElement('style');
+    styleElement.id = styleId;
+    // Scope CSS to this block's container
+    const scopedCss = block.props.css
+      .replace(/([^{}]+)({[^}]+})/g, (match, selector, rules) => {
+        // Add container scope to each selector
+        const scopedSelector = selector
+          .split(',')
+          .map((s: string) => `[data-block-id="${block.id}"] ${s.trim()}`)
+          .join(', ');
+        return `${scopedSelector}${rules}`;
+      });
+    styleElement.textContent = scopedCss;
+    document.head.appendChild(styleElement);
+    
+    return () => {
+      styleElement.remove();
+    };
+  }, [block.props.css, block.id, styleId]);
+  
+  // Execute scripts if enabled
+  useEffect(() => {
+    if (!block.props.enableScripts || !containerRef.current) return;
+    
+    // Find and execute script tags
+    const scripts = containerRef.current.querySelectorAll('script');
+    scripts.forEach((script) => {
+      const newScript = document.createElement('script');
+      newScript.textContent = script.textContent;
+      script.parentNode?.replaceChild(newScript, script);
+    });
+  }, [processedHtml, block.props.enableScripts]);
+
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div
+          ref={containerRef}
+          data-block-id={block.id}
+          dangerouslySetInnerHTML={{ __html: processedHtml }}
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
 export function BlockRenderer({ block, data }: BlockRendererProps) {
   switch (block.type) {
     case 'heading':
@@ -236,6 +316,8 @@ export function BlockRenderer({ block, data }: BlockRendererProps) {
       return <KpiRenderer block={block} data={data} />;
     case 'chart':
       return <ChartRenderer block={block} data={data} />;
+    case 'html':
+      return <HtmlRenderer block={block} data={data} />;
     default:
       return <div className="text-muted-foreground">Bloco desconhecido</div>;
   }

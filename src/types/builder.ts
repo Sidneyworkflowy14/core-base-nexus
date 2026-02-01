@@ -1,6 +1,6 @@
 // Block types for the page builder
 
-export type BlockType = 'heading' | 'text' | 'table' | 'kpi' | 'chart';
+export type BlockType = 'heading' | 'text' | 'table' | 'kpi' | 'chart' | 'html';
 
 export interface BaseBlock {
   id: string;
@@ -70,7 +70,16 @@ export interface ChartBlock extends BaseBlock {
   };
 }
 
-export type Block = HeadingBlock | TextBlock | TableBlock | KpiBlock | ChartBlock;
+export interface HtmlBlock extends BaseBlock {
+  type: 'html';
+  props: {
+    html: string;
+    css?: string;
+    enableScripts?: boolean;
+  };
+}
+
+export type Block = HeadingBlock | TextBlock | TableBlock | KpiBlock | ChartBlock | HtmlBlock;
 
 export interface PageSchema {
   blocks: Block[];
@@ -135,12 +144,13 @@ export interface DataSource {
 }
 
 // Block definitions for the editor
-export const BLOCK_DEFINITIONS: { type: BlockType; label: string; icon: string }[] = [
-  { type: 'heading', label: 'Título', icon: 'heading' },
-  { type: 'text', label: 'Texto', icon: 'text' },
-  { type: 'table', label: 'Tabela', icon: 'table' },
-  { type: 'kpi', label: 'KPI', icon: 'chart-bar' },
-  { type: 'chart', label: 'Gráfico', icon: 'chart-bar' },
+export const BLOCK_DEFINITIONS: { type: BlockType; label: string; icon: string; description?: string }[] = [
+  { type: 'heading', label: 'Título', icon: 'heading', description: 'Cabeçalho H1-H4' },
+  { type: 'text', label: 'Texto', icon: 'text', description: 'Parágrafo de texto' },
+  { type: 'table', label: 'Tabela', icon: 'table', description: 'Tabela de dados' },
+  { type: 'kpi', label: 'KPI', icon: 'gauge', description: 'Indicador numérico' },
+  { type: 'chart', label: 'Gráfico', icon: 'chart-bar', description: 'Gráfico de barras/linha/pizza' },
+  { type: 'html', label: 'HTML/CSS', icon: 'code', description: 'Código customizado' },
 ];
 
 // Create default block
@@ -202,6 +212,32 @@ export function createDefaultBlock(type: BlockType, order: number): Block {
             { label: 'Item 1', value: 10 },
             { label: 'Item 2', value: 20 },
           ],
+        },
+      };
+    case 'html':
+      return {
+        id,
+        type: 'html',
+        order,
+        props: {
+          html: `<div class="custom-block">
+  <h3>Bloco Customizado</h3>
+  <p>Edite o HTML, CSS e scripts conforme necessário.</p>
+</div>`,
+          css: `.custom-block {
+  padding: 1rem;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+.custom-block h3 {
+  margin: 0 0 0.5rem 0;
+}
+.custom-block p {
+  margin: 0;
+  opacity: 0.9;
+}`,
+          enableScripts: false,
         },
       };
   }
