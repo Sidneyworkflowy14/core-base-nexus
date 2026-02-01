@@ -19,6 +19,7 @@ interface PageRow {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
 }
 
 export function usePages() {
@@ -41,6 +42,7 @@ export function usePages() {
         .from('pages' as any)
         .select('*')
         .eq('tenant_id', currentTenant.id)
+        .is('deleted_at', null)
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
@@ -254,6 +256,26 @@ export function usePages() {
     await fetchPages();
   };
 
+  const softDeletePage = async (id: string) => {
+    const { error } = await supabase
+      .from('pages' as any)
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error soft deleting page:', error);
+      throw error;
+    }
+
+    await log({
+      action: 'page_deleted',
+      entity: 'page',
+      entity_id: id,
+    });
+
+    await fetchPages();
+  };
+
   const deletePage = async (id: string) => {
     const { error } = await supabase
       .from('pages' as any)
@@ -266,7 +288,7 @@ export function usePages() {
     }
 
     await log({
-      action: 'page_deleted',
+      action: 'page_permanently_deleted',
       entity: 'page',
       entity_id: id,
     });
@@ -284,6 +306,7 @@ export function usePages() {
     updatePage,
     saveDraft,
     publishPage,
+    softDeletePage,
     deletePage,
   };
 }

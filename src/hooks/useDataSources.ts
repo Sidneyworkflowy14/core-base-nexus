@@ -5,7 +5,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { DataSource, DataSourceType, SupabaseTableConfig, N8nHttpConfig } from '@/types/builder';
 
-interface DataSourceRow {
+export interface DataSourceRow {
+  [key: string]: unknown;
+}
+
+interface DataSourceDbRow {
   id: string;
   tenant_id: string;
   name: string;
@@ -40,7 +44,7 @@ export function useDataSources() {
 
       if (error) throw error;
 
-      const items: DataSource[] = ((data as unknown as DataSourceRow[]) || []).map((item) => ({
+      const items: DataSource[] = ((data as unknown as DataSourceDbRow[]) || []).map((item) => ({
         id: item.id,
         tenant_id: item.tenant_id,
         name: item.name,
@@ -75,7 +79,7 @@ export function useDataSources() {
       return null;
     }
 
-    const item = data as unknown as DataSourceRow;
+    const item = data as unknown as DataSourceDbRow;
     return {
       id: item.id,
       tenant_id: item.tenant_id,
@@ -167,7 +171,14 @@ export function useDataSources() {
     await fetchDataSources();
   };
 
-  const testDataSource = async (ds: DataSource, params?: Record<string, string>): Promise<{ data: unknown; error: string | null }> => {
+  const testDataSource = async (dsOrId: DataSource | string, params?: Record<string, string>): Promise<{ data: DataSourceRow[] | null; error: string | null }> => {
+    let ds: DataSource | null = null;
+    if (typeof dsOrId === 'string') {
+      ds = await getDataSourceById(dsOrId);
+      if (!ds) return { data: null, error: 'Data source não encontrado' };
+    } else {
+      ds = dsOrId;
+    }
     try {
       if (ds.type === 'supabase_table') {
         const config = ds.config as SupabaseTableConfig;
@@ -177,7 +188,7 @@ export function useDataSources() {
           .limit(100);
         
         if (error) throw error;
-        return { data, error: null };
+        return { data: (data as unknown as DataSourceRow[]) || [], error: null };
       } else if (ds.type === 'n8n_http') {
         const config = ds.config as N8nHttpConfig;
         
@@ -201,11 +212,12 @@ export function useDataSources() {
         }
         
         const data = await response.json();
-        return { data, error: null };
+        return { data: Array.isArray(data) ? data : [data], error: null };
       }
       
       return { data: null, error: 'Tipo de data source não suportado' };
     } catch (err: any) {
+      console.error('Error testing data source:', err.message);
       return { data: null, error: err.message };
     }
   };

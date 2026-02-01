@@ -18,7 +18,7 @@ import { FilterParam } from '@/types/builder';
 export default function ViewsPage() {
   const navigate = useNavigate();
   const { currentTenant } = useTenant();
-  const { pages, loading, createPage, deletePage } = usePages();
+  const { pages, loading, createPage, softDeletePage } = usePages();
   const { dataSources } = useDataSources();
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -72,8 +72,8 @@ export default function ViewsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Remover esta página? Todas as versões serão perdidas.')) {
-      await deletePage(id);
+    if (confirm('Excluir esta página? (soft delete - pode ser restaurada)')) {
+      await softDeletePage(id);
     }
   };
 

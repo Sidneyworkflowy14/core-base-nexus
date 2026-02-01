@@ -55,6 +55,38 @@ export type Database = {
           },
         ]
       }
+      dashboards: {
+        Row: {
+          created_at: string
+          id: string
+          layout_json: Json
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          layout_json?: Json
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          layout_json?: Json
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dashboards_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       data_sources: {
         Row: {
           config: Json
@@ -178,6 +210,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           data_source_id: string | null
+          deleted_at: string | null
           filter_params: Json | null
           has_filters: boolean
           id: string
@@ -193,6 +226,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           data_source_id?: string | null
+          deleted_at?: string | null
           filter_params?: Json | null
           has_filters?: boolean
           id?: string
@@ -208,6 +242,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           data_source_id?: string | null
+          deleted_at?: string | null
           filter_params?: Json | null
           has_filters?: boolean
           id?: string
@@ -256,6 +291,77 @@ export type Database = {
           status?: string
         }
         Relationships: []
+      }
+      widgets: {
+        Row: {
+          config_json: Json
+          created_at: string
+          dashboard_id: string
+          data_source_id: string | null
+          id: string
+          page_id: string | null
+          sort_order: number
+          tenant_id: string
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          config_json?: Json
+          created_at?: string
+          dashboard_id: string
+          data_source_id?: string | null
+          id?: string
+          page_id?: string | null
+          sort_order?: number
+          tenant_id: string
+          title: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          config_json?: Json
+          created_at?: string
+          dashboard_id?: string
+          data_source_id?: string | null
+          id?: string
+          page_id?: string | null
+          sort_order?: number
+          tenant_id?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "widgets_dashboard_id_fkey"
+            columns: ["dashboard_id"]
+            isOneToOne: false
+            referencedRelation: "dashboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "widgets_data_source_id_fkey"
+            columns: ["data_source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "widgets_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "pages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "widgets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
