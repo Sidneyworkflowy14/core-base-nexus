@@ -8,6 +8,7 @@ import { NexusTabs, NexusTabsList, NexusTabsTrigger, NexusTabsContent } from '@/
 import { Settings2, Palette } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DataUrlConfig } from './DataUrlConfig';
+import { WidgetStyleProperties } from './WidgetStyleProperties';
 
 interface SelectedElement {
   type: 'section' | 'column' | 'widget';
@@ -104,9 +105,10 @@ export function ElementorPropertiesPanel({
             />
           )}
           {selectedData.type === 'widget' && (
-            <p className="text-sm text-muted-foreground">
-              Estilos do widget em desenvolvimento...
-            </p>
+            <WidgetStyleProperties 
+              widget={selectedData.data as Widget} 
+              onUpdate={onUpdateWidget} 
+            />
           )}
         </NexusTabsContent>
       </NexusTabs>
@@ -356,8 +358,8 @@ function WidgetProperties({
           <div className="space-y-2">
             <Label>Estilo</Label>
             <Select 
-              value={settings.style || 'solid'} 
-              onValueChange={(v) => onUpdate({ style: v as any })}
+              value={settings.dividerStyle || 'solid'} 
+              onValueChange={(v) => onUpdate({ dividerStyle: v as any })}
             >
               <SelectTrigger>
                 <SelectValue />
