@@ -61,14 +61,32 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar">
       {/* Header with Logo */}
-      <SidebarHeader className="p-4 border-b border-sidebar-border">
-        <div className="flex items-center gap-3">
+      <SidebarHeader className="p-2 border-b border-sidebar-border">
+        <div className={cn(
+          "flex items-center",
+          collapsed ? "flex-col gap-2" : "gap-3"
+        )}>
+          {/* Toggle button - always visible and accessible */}
+          <button
+            onClick={toggleSidebar}
+            className={cn(
+              "p-2 rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground flex-shrink-0",
+              collapsed ? "order-first" : "order-last"
+            )}
+            title={collapsed ? "Expandir menu" : "Recolher menu"}
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+
           {/* Logo */}
-          <div className="h-10 w-10 rounded-lg gradient-primary flex items-center justify-center flex-shrink-0">
+          <div className={cn(
+            "rounded-lg gradient-primary flex items-center justify-center flex-shrink-0",
+            collapsed ? "h-8 w-8" : "h-10 w-10"
+          )}>
             {logoUrl ? (
-              <img src={logoUrl} alt="Logo" className="h-8 w-8 object-contain" />
+              <img src={logoUrl} alt="Logo" className={cn(collapsed ? "h-6 w-6" : "h-8 w-8", "object-contain")} />
             ) : (
-              <span className="text-white font-bold text-lg">N</span>
+              <span className={cn("text-white font-bold", collapsed ? "text-sm" : "text-lg")}>N</span>
             )}
           </div>
 
@@ -85,13 +103,6 @@ export function AppSidebar() {
               </Link>
             </div>
           )}
-
-          <button
-            onClick={toggleSidebar}
-            className="p-2 rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground"
-          >
-            <Menu className="h-4 w-4" />
-          </button>
         </div>
       </SidebarHeader>
 
