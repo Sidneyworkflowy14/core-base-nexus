@@ -72,14 +72,12 @@ export function AppSidebar() {
               <p className="text-sm font-semibold text-foreground truncate">
                 {currentTenant?.name ?? 'Selecione org'}
               </p>
-              {userTenants.length > 1 && (
-                <Link
-                  to="/select-tenant"
-                  className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
-                >
-                  Trocar <ChevronDown className="h-3 w-3" />
-                </Link>
-              )}
+              <Link
+                to="/select-tenant"
+                className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+              >
+                {userTenants.length > 1 ? 'Trocar org' : 'Organizações'} <ChevronDown className="h-3 w-3" />
+              </Link>
             </div>
           )}
 
