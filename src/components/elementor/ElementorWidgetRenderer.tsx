@@ -1,10 +1,12 @@
 import { Widget } from '@/types/elementor';
+import { useDataUrlFetch } from '@/hooks/useDataUrlFetch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DynamicIcon } from '@/components/DynamicIcon';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+import { Loader2 } from 'lucide-react';
 
 interface ElementorWidgetRendererProps {
   widget: Widget;
@@ -15,6 +17,9 @@ const CHART_COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(-
 
 export function ElementorWidgetRenderer({ widget, previewData }: ElementorWidgetRendererProps) {
   const { widgetType, settings } = widget;
+  
+  // Fetch data from URL if configured
+  const { data: urlData, loading: urlLoading, error: urlError } = useDataUrlFetch(settings.dataUrl);
 
   switch (widgetType) {
     case 'heading': {
@@ -139,9 +144,51 @@ export function ElementorWidgetRenderer({ widget, previewData }: ElementorWidget
       );
 
     case 'table': {
-      const tableData = settings.dataBinding?.enabled && previewData
-        ? (Array.isArray(previewData) ? previewData : [])
-        : settings.staticData || [];
+      // Use URL data if configured
+      let tableData: Record<string, unknown>[] = [];
+      
+      if (settings.dataUrl && urlData) {
+        tableData = Array.isArray(urlData) ? urlData : [];
+      } else if (settings.dataBinding?.enabled && previewData) {
+        tableData = Array.isArray(previewData) ? previewData : [];
+      } else {
+        tableData = settings.staticData || [];
+      }
+
+      // Auto-generate columns from URL fields or data
+      let columns = settings.columns || [];
+      if (settings.dataUrl && settings.dataUrlFields && settings.dataUrlFields.length > 0) {
+        columns = settings.dataUrlFields.map(field => ({
+          key: field,
+          label: field.charAt(0).toUpperCase() + field.slice(1).replace(/_/g, ' '),
+        }));
+      } else if (tableData.length > 0 && columns.length === 0) {
+        const firstRow = tableData[0];
+        columns = Object.keys(firstRow).slice(0, 5).map(key => ({
+          key,
+          label: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' '),
+        }));
+      }
+
+      if (urlLoading) {
+        return (
+          <Card>
+            <CardContent className="py-8 flex items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </CardContent>
+          </Card>
+        );
+      }
+
+      if (urlError) {
+        return (
+          <Card>
+            <CardContent className="py-8">
+              <p className="text-destructive text-sm text-center">Erro: {urlError}</p>
+            </CardContent>
+          </Card>
+        );
+      }
 
       return (
         <Card>
@@ -157,7 +204,7 @@ export function ElementorWidgetRenderer({ widget, previewData }: ElementorWidget
               <Table>
                 <TableHeader>
                   <TableRow>
-                    {(settings.columns || []).map((col) => (
+                    {columns.map((col) => (
                       <TableHead key={col.key}>{col.label}</TableHead>
                     ))}
                   </TableRow>
@@ -165,7 +212,7 @@ export function ElementorWidgetRenderer({ widget, previewData }: ElementorWidget
                 <TableBody>
                   {tableData.slice(0, 10).map((row: any, idx: number) => (
                     <TableRow key={idx}>
-                      {(settings.columns || []).map((col) => (
+                      {columns.map((col) => (
                         <TableCell key={col.key}>{row[col.key] ?? '-'}</TableCell>
                       ))}
                     </TableRow>
@@ -181,16 +228,44 @@ export function ElementorWidgetRenderer({ widget, previewData }: ElementorWidget
     case 'kpi': {
       let value = settings.value || '0';
       
+      // Use URL data if configured
+      if (settings.dataUrl && urlData && settings.selectedValueField) {
+        const dataArray = Array.isArray(urlData) ? urlData : [];
+        if (dataArray.length > 0) {
+          const firstItem = dataArray[0] as Record<string, unknown>;
+          const urlValue = firstItem[settings.selectedValueField];
+          if (urlValue !== undefined) {
+            value = String(urlValue);
+          }
+        }
+      }
+      
       // Apply formatting
       const numValue = parseFloat(value);
+      let formattedValue = value;
       if (!isNaN(numValue)) {
         if (settings.format === 'currency') {
-          value = numValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+          formattedValue = numValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         } else if (settings.format === 'percent') {
-          value = `${numValue.toFixed(1)}%`;
+          formattedValue = `${numValue.toFixed(1)}%`;
         } else {
-          value = numValue.toLocaleString('pt-BR');
+          formattedValue = numValue.toLocaleString('pt-BR');
         }
+      }
+
+      if (urlLoading) {
+        return (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {settings.title || 'KPI'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </CardContent>
+          </Card>
+        );
       }
 
       return (
@@ -202,22 +277,44 @@ export function ElementorWidgetRenderer({ widget, previewData }: ElementorWidget
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">
-              {settings.prefix}{value}{settings.suffix}
+              {settings.prefix}{formattedValue}{settings.suffix}
             </div>
+            {urlError && (
+              <p className="text-destructive text-xs mt-1">Erro ao carregar dados</p>
+            )}
           </CardContent>
         </Card>
       );
     }
 
     case 'chart': {
-      const chartData = settings.chartData || [];
+      let chartData = settings.chartData || [];
+      
+      // Use URL data if configured
+      if (settings.dataUrl && urlData && settings.selectedLabelField && settings.selectedValueField) {
+        const dataArray = Array.isArray(urlData) ? urlData : [];
+        chartData = dataArray.map((item: any) => ({
+          label: String(item[settings.selectedLabelField!] || ''),
+          value: Number(item[settings.selectedValueField!]) || 0,
+        }));
+      }
+
+      if (urlLoading) {
+        return (
+          <Card>
+            <CardContent className="py-8 flex items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </CardContent>
+          </Card>
+        );
+      }
       
       if (chartData.length === 0) {
         return (
           <Card>
             <CardContent className="py-8">
               <p className="text-muted-foreground text-center text-sm">
-                Configure os dados do gráfico
+                {settings.dataUrl ? 'Configure os campos de label e valor' : 'Configure os dados do gráfico'}
               </p>
             </CardContent>
           </Card>
@@ -270,6 +367,9 @@ export function ElementorWidgetRenderer({ widget, previewData }: ElementorWidget
                 )}
               </ResponsiveContainer>
             </div>
+            {urlError && (
+              <p className="text-destructive text-xs mt-2 text-center">Erro ao carregar dados</p>
+            )}
           </CardContent>
         </Card>
       );
