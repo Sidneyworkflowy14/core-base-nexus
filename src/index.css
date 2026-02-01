@@ -203,6 +203,11 @@
     @apply hover:bg-background;
   }
   
+  /* Collapsed state - center icons */
+  [data-state="collapsed"] .nexus-menu-item {
+    @apply justify-center px-0 gap-0;
+  }
+  
   .nexus-menu-item-active {
     @apply bg-sidebar-accent text-sidebar-accent-foreground;
   }

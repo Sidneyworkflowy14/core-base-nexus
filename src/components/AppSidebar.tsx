@@ -106,7 +106,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="scrollbar-thin px-3 py-4">
+      <SidebarContent className={cn("scrollbar-thin py-4", collapsed ? "px-1" : "px-3")}>
         {/* Main Navigation */}
         <SidebarGroup>
           {!collapsed && (
