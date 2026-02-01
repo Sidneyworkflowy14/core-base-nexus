@@ -6,6 +6,22 @@ export function getWidgetStyles(style?: WidgetStyleSettings): CSSProperties {
 
   const styles: CSSProperties = {};
 
+  // Alignment
+  if (style.alignSelf) {
+    styles.alignSelf = style.alignSelf === 'start' ? 'flex-start' 
+      : style.alignSelf === 'end' ? 'flex-end' 
+      : style.alignSelf;
+  }
+  if (style.textAlign) {
+    styles.textAlign = style.textAlign;
+  }
+  if (style.justifyContent) {
+    styles.display = 'flex';
+    styles.justifyContent = style.justifyContent === 'start' ? 'flex-start'
+      : style.justifyContent === 'end' ? 'flex-end'
+      : style.justifyContent;
+  }
+
   // Width
   if (style.width === 'full') {
     styles.width = '100%';

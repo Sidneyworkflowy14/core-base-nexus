@@ -4,9 +4,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { Link2, Link2Off, Move, Square, Maximize, Eye, EyeOff } from 'lucide-react';
+import { Link2, Link2Off, Move, Square, Maximize, Eye, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
 
 interface WidgetStylePropertiesProps {
   widget: Widget;
@@ -24,6 +23,89 @@ export function WidgetStyleProperties({ widget, onUpdate }: WidgetStylePropertie
 
   return (
     <div className="space-y-6">
+      {/* Alignment Section */}
+      <StyleSection title="Alinhamento" icon={<AlignCenter className="h-4 w-4" />}>
+        <div className="space-y-3">
+          <div className="space-y-2">
+            <Label className="text-xs">Posição do Elemento</Label>
+            <div className="flex gap-1">
+              <button
+                type="button"
+                onClick={() => updateStyle({ alignSelf: 'start', justifyContent: 'start' })}
+                className={cn(
+                  "flex-1 p-2 rounded border transition-colors",
+                  style.alignSelf === 'start' ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"
+                )}
+                title="Esquerda"
+              >
+                <AlignLeft className="h-4 w-4 mx-auto" />
+              </button>
+              <button
+                type="button"
+                onClick={() => updateStyle({ alignSelf: 'center', justifyContent: 'center' })}
+                className={cn(
+                  "flex-1 p-2 rounded border transition-colors",
+                  style.alignSelf === 'center' ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"
+                )}
+                title="Centro"
+              >
+                <AlignCenter className="h-4 w-4 mx-auto" />
+              </button>
+              <button
+                type="button"
+                onClick={() => updateStyle({ alignSelf: 'end', justifyContent: 'end' })}
+                className={cn(
+                  "flex-1 p-2 rounded border transition-colors",
+                  style.alignSelf === 'end' ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"
+                )}
+                title="Direita"
+              >
+                <AlignRight className="h-4 w-4 mx-auto" />
+              </button>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label className="text-xs">Alinhamento do Texto</Label>
+            <div className="flex gap-1">
+              <button
+                type="button"
+                onClick={() => updateStyle({ textAlign: 'left' })}
+                className={cn(
+                  "flex-1 p-2 rounded border transition-colors",
+                  style.textAlign === 'left' ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"
+                )}
+                title="Esquerda"
+              >
+                <AlignLeft className="h-4 w-4 mx-auto" />
+              </button>
+              <button
+                type="button"
+                onClick={() => updateStyle({ textAlign: 'center' })}
+                className={cn(
+                  "flex-1 p-2 rounded border transition-colors",
+                  style.textAlign === 'center' ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"
+                )}
+                title="Centro"
+              >
+                <AlignCenter className="h-4 w-4 mx-auto" />
+              </button>
+              <button
+                type="button"
+                onClick={() => updateStyle({ textAlign: 'right' })}
+                className={cn(
+                  "flex-1 p-2 rounded border transition-colors",
+                  style.textAlign === 'right' ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"
+                )}
+                title="Direita"
+              >
+                <AlignRight className="h-4 w-4 mx-auto" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </StyleSection>
+
       {/* Sizing Section */}
       <StyleSection title="Dimensões" icon={<Maximize className="h-4 w-4" />}>
         <div className="space-y-3">
@@ -115,7 +197,6 @@ export function WidgetStyleProperties({ widget, onUpdate }: WidgetStylePropertie
       {/* Margin Section */}
       <StyleSection title="Margem" icon={<Move className="h-4 w-4" />}>
         <SpacingControl
-          label="Margem"
           values={{
             top: style.marginTop || 0,
             right: style.marginRight || 0,
@@ -138,7 +219,6 @@ export function WidgetStyleProperties({ widget, onUpdate }: WidgetStylePropertie
       {/* Padding Section */}
       <StyleSection title="Padding" icon={<Square className="h-4 w-4" />}>
         <SpacingControl
-          label="Padding"
           values={{
             top: style.paddingTop || 0,
             right: style.paddingRight || 0,
@@ -329,7 +409,6 @@ function StyleSection({
 }
 
 interface SpacingControlProps {
-  label: string;
   values: { top: number; right: number; bottom: number; left: number };
   linked: boolean;
   unit: string;
