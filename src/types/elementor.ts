@@ -42,6 +42,11 @@ export type WidgetType =
 
 // Common style properties for all widgets (Elementor-style)
 export interface WidgetStyleSettings {
+  // Alignment
+  alignSelf?: 'auto' | 'start' | 'center' | 'end' | 'stretch';
+  textAlign?: 'left' | 'center' | 'right';
+  justifyContent?: 'start' | 'center' | 'end';
+  
   // Sizing
   width?: 'auto' | 'full' | 'custom';
   customWidth?: number;
