@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Link2, RefreshCw, Check, AlertCircle } from 'lucide-react';
+import { Loader2, Link2, RefreshCw, Check, AlertCircle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface DataUrlConfigProps {
@@ -11,25 +11,56 @@ interface DataUrlConfigProps {
   dataUrlFields?: string[];
   selectedValueField?: string;
   selectedLabelField?: string;
+  refreshInterval?: number;
   showLabelField?: boolean;
   onUpdate: (settings: {
     dataUrl?: string;
     dataUrlFields?: string[];
     selectedValueField?: string;
     selectedLabelField?: string;
+    refreshInterval?: number;
   }) => void;
 }
+
+const REFRESH_OPTIONS = [
+  { value: '0', label: 'Manual (sem atualização)' },
+  { value: '10', label: 'A cada 10 segundos' },
+  { value: '30', label: 'A cada 30 segundos' },
+  { value: '60', label: 'A cada 1 minuto' },
+  { value: '120', label: 'A cada 2 minutos' },
+  { value: '300', label: 'A cada 5 minutos' },
+  { value: 'custom', label: 'Personalizado...' },
+];
 
 export function DataUrlConfig({
   dataUrl,
   dataUrlFields = [],
   selectedValueField,
   selectedLabelField,
+  refreshInterval = 0,
   showLabelField = false,
   onUpdate,
 }: DataUrlConfigProps) {
   const [testing, setTesting] = useState(false);
   const [testStatus, setTestStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [showCustomInterval, setShowCustomInterval] = useState(
+    refreshInterval > 0 && !REFRESH_OPTIONS.some(o => o.value === String(refreshInterval))
+  );
+
+  const handleIntervalChange = (value: string) => {
+    if (value === 'custom') {
+      setShowCustomInterval(true);
+      return;
+    }
+    setShowCustomInterval(false);
+    onUpdate({ refreshInterval: parseInt(value, 10) });
+  };
+
+  const getCurrentIntervalValue = () => {
+    if (showCustomInterval) return 'custom';
+    const match = REFRESH_OPTIONS.find(o => o.value === String(refreshInterval));
+    return match ? match.value : 'custom';
+  };
 
   const handleTestUrl = async () => {
     if (!dataUrl) {
@@ -208,6 +239,51 @@ export function DataUrlConfig({
             Campos disponíveis: {dataUrlFields.join(', ')}
           </div>
         </>
+      )}
+
+      {dataUrl && (
+        <div className="space-y-2 pt-2 border-t border-border">
+          <div className="flex items-center gap-2 text-xs font-medium">
+            <Clock className="h-3 w-3" />
+            Atualização Automática
+          </div>
+          
+          <Select
+            value={getCurrentIntervalValue()}
+            onValueChange={handleIntervalChange}
+          >
+            <SelectTrigger className="text-xs">
+              <SelectValue placeholder="Selecione o intervalo" />
+            </SelectTrigger>
+            <SelectContent>
+              {REFRESH_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {showCustomInterval && (
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                min={5}
+                value={refreshInterval || ''}
+                onChange={(e) => onUpdate({ refreshInterval: parseInt(e.target.value, 10) || 0 })}
+                placeholder="Segundos"
+                className="text-xs"
+              />
+              <span className="text-xs text-muted-foreground whitespace-nowrap">segundos</span>
+            </div>
+          )}
+
+          {refreshInterval > 0 && (
+            <div className="text-xs text-muted-foreground">
+              Os dados serão atualizados a cada {refreshInterval} segundos automaticamente.
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

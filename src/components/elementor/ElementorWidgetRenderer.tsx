@@ -35,7 +35,8 @@ export function ElementorWidgetRenderer({ widget, previewData }: ElementorWidget
   // Fetch data from URL if configured (now sends POST with context)
   const { data: urlData, loading: urlLoading, error: urlError } = useDataUrlFetch(
     settings.dataUrl,
-    settings.dataUrl ? dataUrlContext : undefined
+    settings.dataUrl ? dataUrlContext : undefined,
+    settings.refreshInterval
   );
 
   // Get custom styles
