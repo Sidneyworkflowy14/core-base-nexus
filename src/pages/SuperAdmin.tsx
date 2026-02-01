@@ -4,16 +4,30 @@ import { useAuditLog } from '@/hooks/useAuditLog';
 import { useAuditLogs } from '@/hooks/useAuditLogs';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/AppLayout';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { 
+  NexusButton, 
+  NexusCard, 
+  NexusCardHeader, 
+  NexusCardTitle, 
+  NexusCardDescription, 
+  NexusCardContent,
+  NexusInput,
+  NexusBadge,
+  NexusTable,
+  NexusTableHeader,
+  NexusTableBody,
+  NexusTableRow,
+  NexusTableHead,
+  NexusTableCell,
+  NexusTabs,
+  NexusTabsList,
+  NexusTabsTrigger,
+  NexusTabsContent,
+} from '@/components/nexus';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { Tenant } from '@/types/auth';
-import { Building2, Users, FileText, Activity } from 'lucide-react';
+import { Building2, Users, FileText, Activity, Shield, Sparkles } from 'lucide-react';
 
 export default function SuperAdminPage() {
   const { isSuperAdmin } = useRoles();
@@ -147,7 +161,13 @@ export default function SuperAdminPage() {
   if (!isSuperAdmin) {
     return (
       <AppLayout>
-        <div className="text-destructive">Acesso negado. Apenas super admins.</div>
+        <div className="flex items-center justify-center h-64">
+          <NexusCard className="text-center p-8">
+            <Shield className="h-12 w-12 text-destructive mx-auto mb-4" />
+            <h2 className="text-lg font-semibold">Acesso Negado</h2>
+            <p className="text-muted-foreground">Apenas super admins podem acessar esta página.</p>
+          </NexusCard>
+        </div>
       </AppLayout>
     );
   }
@@ -155,63 +175,77 @@ export default function SuperAdminPage() {
   return (
     <AppLayout>
       <div className="space-y-6">
+        {/* Header */}
         <div>
-          <h1 className="text-2xl font-semibold">Super Admin</h1>
-          <p className="text-muted-foreground">Gerenciamento global do sistema</p>
+          <div className="flex items-center gap-3">
+            <Shield className="h-7 w-7 text-primary" />
+            <h1 className="text-2xl font-semibold">Super Admin</h1>
+            <NexusBadge variant="beta">ADMIN</NexusBadge>
+          </div>
+          <p className="text-muted-foreground mt-1">Gerenciamento global do sistema</p>
         </div>
 
         {/* Stats */}
         <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Organizações</CardTitle>
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.tenants}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Usuários</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.users}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Páginas</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.pages}</div>
-            </CardContent>
-          </Card>
+          <NexusCard>
+            <NexusCardContent className="flex items-center gap-4 py-4">
+              <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Building2 className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Organizações</p>
+                <p className="text-2xl font-bold">{stats.tenants}</p>
+              </div>
+            </NexusCardContent>
+          </NexusCard>
+          <NexusCard>
+            <NexusCardContent className="flex items-center gap-4 py-4">
+              <div className="h-12 w-12 rounded-lg bg-secondary/10 flex items-center justify-center">
+                <Users className="h-6 w-6 text-secondary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Usuários</p>
+                <p className="text-2xl font-bold">{stats.users}</p>
+              </div>
+            </NexusCardContent>
+          </NexusCard>
+          <NexusCard>
+            <NexusCardContent className="flex items-center gap-4 py-4">
+              <div className="h-12 w-12 rounded-lg bg-success/10 flex items-center justify-center">
+                <FileText className="h-6 w-6 text-success" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Páginas</p>
+                <p className="text-2xl font-bold">{stats.pages}</p>
+              </div>
+            </NexusCardContent>
+          </NexusCard>
         </div>
 
-        <Tabs defaultValue="tenants" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="tenants">Organizações</TabsTrigger>
-            <TabsTrigger value="logs">
+        <NexusTabs defaultValue="tenants" className="space-y-4">
+          <NexusTabsList>
+            <NexusTabsTrigger value="tenants">
+              <Building2 className="h-4 w-4 mr-2" />
+              Organizações
+            </NexusTabsTrigger>
+            <NexusTabsTrigger value="logs">
               <Activity className="h-4 w-4 mr-2" />
               Logs de Auditoria
-            </TabsTrigger>
-          </TabsList>
+            </NexusTabsTrigger>
+          </NexusTabsList>
 
-          <TabsContent value="tenants" className="space-y-4">
+          <NexusTabsContent value="tenants" className="space-y-4">
             {/* Create tenant */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Nova organização</CardTitle>
-                <CardDescription>Criar uma nova organização (tenant)</CardDescription>
-              </CardHeader>
-              <CardContent>
+            <NexusCard>
+              <NexusCardHeader>
+                <NexusCardTitle>Nova organização</NexusCardTitle>
+                <NexusCardDescription>Criar uma nova organização (tenant)</NexusCardDescription>
+              </NexusCardHeader>
+              <NexusCardContent>
                 <form onSubmit={handleCreateTenant} className="flex gap-4">
                   <div className="flex-1 space-y-2">
                     <Label htmlFor="name">Nome</Label>
-                    <Input
+                    <NexusInput
                       id="name"
                       value={newTenantName}
                       onChange={(e) => setNewTenantName(e.target.value)}
@@ -220,9 +254,10 @@ export default function SuperAdminPage() {
                     />
                   </div>
                   <div className="flex items-end">
-                    <Button type="submit" disabled={creating}>
-                      {creating ? 'Criando...' : 'Criar'}
-                    </Button>
+                    <NexusButton type="submit" loading={creating}>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Criar
+                    </NexusButton>
                   </div>
                 </form>
                 {error && (
@@ -230,84 +265,86 @@ export default function SuperAdminPage() {
                     {error}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </NexusCardContent>
+            </NexusCard>
 
             {/* Tenants list */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Organizações</CardTitle>
-                <CardDescription>Todas as organizações do sistema</CardDescription>
-              </CardHeader>
-              <CardContent>
+            <NexusCard>
+              <NexusCardHeader>
+                <NexusCardTitle>Organizações</NexusCardTitle>
+                <NexusCardDescription>Todas as organizações do sistema</NexusCardDescription>
+              </NexusCardHeader>
+              <NexusCardContent>
                 {loading ? (
-                  <div className="text-muted-foreground">Carregando...</div>
+                  <div className="text-muted-foreground py-8 text-center">Carregando...</div>
                 ) : tenants.length === 0 ? (
-                  <div className="text-muted-foreground">Nenhuma organização encontrada.</div>
+                  <div className="text-muted-foreground py-8 text-center">
+                    Nenhuma organização encontrada.
+                  </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nome</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Criado em</TableHead>
-                        <TableHead>Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                  <NexusTable>
+                    <NexusTableHeader>
+                      <NexusTableRow>
+                        <NexusTableHead>Nome</NexusTableHead>
+                        <NexusTableHead>Status</NexusTableHead>
+                        <NexusTableHead>Criado em</NexusTableHead>
+                        <NexusTableHead>Ações</NexusTableHead>
+                      </NexusTableRow>
+                    </NexusTableHeader>
+                    <NexusTableBody>
                       {tenants.map((tenant) => (
-                        <TableRow key={tenant.id}>
-                          <TableCell className="font-medium">{tenant.name}</TableCell>
-                          <TableCell>
-                            <Badge
+                        <NexusTableRow key={tenant.id}>
+                          <NexusTableCell className="font-medium">{tenant.name}</NexusTableCell>
+                          <NexusTableCell>
+                            <NexusBadge
                               variant={
-                                tenant.status === 'active' ? 'default' :
-                                tenant.status === 'inactive' ? 'secondary' : 'destructive'
+                                tenant.status === 'active' ? 'success' :
+                                tenant.status === 'inactive' ? 'muted' : 'destructive'
                               }
                             >
                               {tenant.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-muted-foreground text-sm">
+                            </NexusBadge>
+                          </NexusTableCell>
+                          <NexusTableCell className="text-muted-foreground text-sm">
                             {new Date(tenant.created_at).toLocaleDateString('pt-BR')}
-                          </TableCell>
-                          <TableCell>
+                          </NexusTableCell>
+                          <NexusTableCell>
                             <div className="flex gap-2">
                               {tenant.status === 'active' ? (
-                                <Button
+                                <NexusButton
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleStatusChange(tenant.id, 'suspended')}
                                 >
                                   Suspender
-                                </Button>
+                                </NexusButton>
                               ) : (
-                                <Button
+                                <NexusButton
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleStatusChange(tenant.id, 'active')}
                                 >
                                   Ativar
-                                </Button>
+                                </NexusButton>
                               )}
                             </div>
-                          </TableCell>
-                        </TableRow>
+                          </NexusTableCell>
+                        </NexusTableRow>
                       ))}
-                    </TableBody>
-                  </Table>
+                    </NexusTableBody>
+                  </NexusTable>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </NexusCardContent>
+            </NexusCard>
+          </NexusTabsContent>
 
-          <TabsContent value="logs" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Logs de Auditoria</CardTitle>
-                <CardDescription>Atividades recentes do sistema</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+          <NexusTabsContent value="logs" className="space-y-4">
+            <NexusCard>
+              <NexusCardHeader>
+                <NexusCardTitle>Logs de Auditoria</NexusCardTitle>
+                <NexusCardDescription>Atividades recentes do sistema</NexusCardDescription>
+              </NexusCardHeader>
+              <NexusCardContent className="space-y-4">
                 <div className="flex items-center gap-4">
                   <Label>Filtrar por tenant:</Label>
                   <Select value={selectedTenantForLogs} onValueChange={setSelectedTenantForLogs}>
@@ -324,50 +361,52 @@ export default function SuperAdminPage() {
                 </div>
 
                 {logsLoading ? (
-                  <div className="text-muted-foreground">Carregando logs...</div>
+                  <div className="text-muted-foreground py-8 text-center">Carregando logs...</div>
                 ) : logs.length === 0 ? (
-                  <div className="text-muted-foreground">Nenhum log encontrado.</div>
+                  <div className="text-muted-foreground py-8 text-center">
+                    Nenhum log encontrado.
+                  </div>
                 ) : (
-                  <div className="overflow-auto max-h-96">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Data</TableHead>
-                          <TableHead>Ação</TableHead>
-                          <TableHead>Entidade</TableHead>
-                          <TableHead>Detalhes</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
+                  <div className="overflow-auto max-h-[500px]">
+                    <NexusTable>
+                      <NexusTableHeader>
+                        <NexusTableRow>
+                          <NexusTableHead>Data</NexusTableHead>
+                          <NexusTableHead>Ação</NexusTableHead>
+                          <NexusTableHead>Entidade</NexusTableHead>
+                          <NexusTableHead>Detalhes</NexusTableHead>
+                        </NexusTableRow>
+                      </NexusTableHeader>
+                      <NexusTableBody>
                         {logs.map((logEntry) => (
-                          <TableRow key={logEntry.id}>
-                            <TableCell className="text-xs text-muted-foreground">
+                          <NexusTableRow key={logEntry.id}>
+                            <NexusTableCell className="text-xs text-muted-foreground whitespace-nowrap">
                               {new Date(logEntry.created_at).toLocaleString('pt-BR')}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline">{logEntry.action}</Badge>
-                            </TableCell>
-                            <TableCell className="font-mono text-xs">
+                            </NexusTableCell>
+                            <NexusTableCell>
+                              <NexusBadge variant="outline">{logEntry.action}</NexusBadge>
+                            </NexusTableCell>
+                            <NexusTableCell className="font-mono text-xs">
                               {logEntry.entity}
                               {logEntry.entity_id && (
                                 <span className="text-muted-foreground ml-1">
                                   ({logEntry.entity_id.slice(0, 8)}...)
                                 </span>
                               )}
-                            </TableCell>
-                            <TableCell className="text-xs max-w-xs truncate">
+                            </NexusTableCell>
+                            <NexusTableCell className="text-xs max-w-xs truncate">
                               {JSON.stringify(logEntry.metadata_json)}
-                            </TableCell>
-                          </TableRow>
+                            </NexusTableCell>
+                          </NexusTableRow>
                         ))}
-                      </TableBody>
-                    </Table>
+                      </NexusTableBody>
+                    </NexusTable>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              </NexusCardContent>
+            </NexusCard>
+          </NexusTabsContent>
+        </NexusTabs>
       </div>
     </AppLayout>
   );

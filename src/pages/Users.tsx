@@ -4,13 +4,26 @@ import { useRoles } from '@/hooks/useRoles';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/AppLayout';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { 
+  NexusButton, 
+  NexusCard, 
+  NexusCardHeader, 
+  NexusCardTitle, 
+  NexusCardDescription, 
+  NexusCardContent,
+  NexusInput,
+  NexusBadge,
+  NexusTable,
+  NexusTableHeader,
+  NexusTableBody,
+  NexusTableRow,
+  NexusTableHead,
+  NexusTableCell,
+} from '@/components/nexus';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AppRole, Membership } from '@/types/auth';
+import { Users, UserPlus, Mail } from 'lucide-react';
 
 interface MembershipWithEmail extends Membership {
   email?: string;
@@ -132,6 +145,22 @@ export default function UsersPage() {
     }
   };
 
+  const getRoleBadgeVariant = (role: AppRole) => {
+    switch (role) {
+      case 'superadmin': return 'destructive';
+      case 'tenant_admin': return 'default';
+      default: return 'muted';
+    }
+  };
+
+  const getRoleLabel = (role: AppRole) => {
+    switch (role) {
+      case 'superadmin': return 'Super Admin';
+      case 'tenant_admin': return 'Admin';
+      default: return 'Usuário';
+    }
+  };
+
   if (!currentTenant) {
     return (
       <AppLayout>
@@ -143,28 +172,37 @@ export default function UsersPage() {
   return (
     <AppLayout>
       <div className="max-w-4xl space-y-6">
+        {/* Header */}
         <div>
-          <h1 className="text-2xl font-semibold">Usuários</h1>
-          <p className="text-muted-foreground">{currentTenant.name}</p>
+          <div className="flex items-center gap-3">
+            <Users className="h-7 w-7 text-primary" />
+            <h1 className="text-2xl font-semibold">Usuários</h1>
+          </div>
+          <p className="text-muted-foreground mt-1">{currentTenant.name}</p>
         </div>
 
+        {/* Invite user */}
         {isTenantAdmin && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Convidar usuário</CardTitle>
-              <CardDescription>Adicione novos membros à organização</CardDescription>
-            </CardHeader>
-            <CardContent>
+          <NexusCard>
+            <NexusCardHeader>
+              <NexusCardTitle className="flex items-center gap-2">
+                <UserPlus className="h-5 w-5" />
+                Convidar usuário
+              </NexusCardTitle>
+              <NexusCardDescription>Adicione novos membros à organização</NexusCardDescription>
+            </NexusCardHeader>
+            <NexusCardContent>
               <form onSubmit={handleInvite} className="flex gap-4">
                 <div className="flex-1 space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input
+                  <NexusInput
                     id="email"
                     type="email"
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
                     required
                     placeholder="usuario@email.com"
+                    icon={<Mail className="h-4 w-4" />}
                   />
                 </div>
                 <div className="w-40 space-y-2">
@@ -180,9 +218,10 @@ export default function UsersPage() {
                   </Select>
                 </div>
                 <div className="flex items-end">
-                  <Button type="submit" disabled={inviting}>
-                    {inviting ? 'Enviando...' : 'Convidar'}
-                  </Button>
+                  <NexusButton type="submit" loading={inviting}>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Convidar
+                  </NexusButton>
                 </div>
               </form>
               {error && (
@@ -195,37 +234,40 @@ export default function UsersPage() {
                   {success}
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </NexusCardContent>
+          </NexusCard>
         )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Membros</CardTitle>
-            <CardDescription>Usuários da organização</CardDescription>
-          </CardHeader>
-          <CardContent>
+        {/* Members list */}
+        <NexusCard>
+          <NexusCardHeader>
+            <NexusCardTitle>Membros</NexusCardTitle>
+            <NexusCardDescription>Usuários da organização</NexusCardDescription>
+          </NexusCardHeader>
+          <NexusCardContent>
             {loading ? (
-              <div className="text-muted-foreground">Carregando...</div>
+              <div className="text-muted-foreground py-8 text-center">Carregando...</div>
             ) : members.length === 0 ? (
-              <div className="text-muted-foreground">Nenhum membro encontrado.</div>
+              <div className="text-muted-foreground py-8 text-center">
+                Nenhum membro encontrado.
+              </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User ID</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Data</TableHead>
-                    {isTenantAdmin && <TableHead>Ações</TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <NexusTable>
+                <NexusTableHeader>
+                  <NexusTableRow>
+                    <NexusTableHead>User ID</NexusTableHead>
+                    <NexusTableHead>Role</NexusTableHead>
+                    <NexusTableHead>Data</NexusTableHead>
+                    {isTenantAdmin && <NexusTableHead>Ações</NexusTableHead>}
+                  </NexusTableRow>
+                </NexusTableHeader>
+                <NexusTableBody>
                   {members.map((member) => (
-                    <TableRow key={member.id}>
-                      <TableCell className="font-mono text-xs">
+                    <NexusTableRow key={member.id}>
+                      <NexusTableCell className="font-mono text-xs">
                         {member.user_id.slice(0, 8)}...
-                      </TableCell>
-                      <TableCell>
+                      </NexusTableCell>
+                      <NexusTableCell>
                         {isTenantAdmin ? (
                           <Select
                             value={member.role}
@@ -240,34 +282,32 @@ export default function UsersPage() {
                             </SelectContent>
                           </Select>
                         ) : (
-                          <span>
-                            {member.role === 'tenant_admin' && 'Admin'}
-                            {member.role === 'tenant_user' && 'Usuário'}
-                            {member.role === 'superadmin' && 'Super Admin'}
-                          </span>
+                          <NexusBadge variant={getRoleBadgeVariant(member.role)}>
+                            {getRoleLabel(member.role)}
+                          </NexusBadge>
                         )}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
+                      </NexusTableCell>
+                      <NexusTableCell className="text-muted-foreground text-sm">
                         {new Date(member.created_at).toLocaleDateString('pt-BR')}
-                      </TableCell>
+                      </NexusTableCell>
                       {isTenantAdmin && (
-                        <TableCell>
-                          <Button
-                            variant="destructive"
+                        <NexusTableCell>
+                          <NexusButton
+                            variant="danger"
                             size="sm"
                             onClick={() => handleRemove(member.id, member.user_id)}
                           >
                             Remover
-                          </Button>
-                        </TableCell>
+                          </NexusButton>
+                        </NexusTableCell>
                       )}
-                    </TableRow>
+                    </NexusTableRow>
                   ))}
-                </TableBody>
-              </Table>
+                </NexusTableBody>
+              </NexusTable>
             )}
-          </CardContent>
-        </Card>
+          </NexusCardContent>
+        </NexusCard>
       </div>
     </AppLayout>
   );
