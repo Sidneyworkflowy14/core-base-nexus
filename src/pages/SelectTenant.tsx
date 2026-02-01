@@ -1,10 +1,13 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTenant } from '@/contexts/TenantContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Building2, Check, ArrowLeft } from 'lucide-react';
+import { NexusBadge } from '@/components/nexus';
 
 export default function SelectTenantPage() {
+  const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { userTenants, currentTenant, setCurrentTenant, loading: tenantLoading } = useTenant();
 
@@ -20,8 +23,9 @@ export default function SelectTenantPage() {
     return <Navigate to="/auth" replace />;
   }
 
-  // If user has only one tenant or has already selected one, go to dashboard
-  if (userTenants.length === 1 || currentTenant) {
+  // If user has only one tenant and NO current selection, auto-select
+  if (userTenants.length === 1 && !currentTenant) {
+    setCurrentTenant(userTenants[0].tenant_id);
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -48,35 +52,70 @@ export default function SelectTenantPage() {
 
   const handleSelect = (tenantId: string) => {
     setCurrentTenant(tenantId);
+    navigate('/dashboard');
+  };
+
+  const getRoleBadge = (role: string) => {
+    switch (role) {
+      case 'superadmin':
+        return <NexusBadge variant="beta" size="sm">Super Admin</NexusBadge>;
+      case 'tenant_admin':
+        return <NexusBadge variant="success" size="sm">Admin</NexusBadge>;
+      default:
+        return <NexusBadge variant="muted" size="sm">Usuário</NexusBadge>;
+    }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
+    <div className="flex min-h-screen items-center justify-center p-4 bg-background">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Selecionar organização</CardTitle>
-          <CardDescription>
-            Escolha a organização que deseja acessar
-          </CardDescription>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Building2 className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle>Selecionar organização</CardTitle>
+              <CardDescription>
+                Escolha a organização que deseja acessar
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="space-y-2">
-          {userTenants.map((membership) => (
+          {userTenants.map((membership) => {
+            const isSelected = currentTenant?.id === membership.tenant_id;
+            return (
+              <Button
+                key={membership.id}
+                variant={isSelected ? "default" : "outline"}
+                className="w-full justify-between h-auto py-3"
+                onClick={() => handleSelect(membership.tenant_id)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm">
+                    {membership.tenant?.name?.charAt(0).toUpperCase() || '?'}
+                  </div>
+                  <div className="flex flex-col items-start">
+                    <span className="font-medium">{membership.tenant?.name ?? 'Sem nome'}</span>
+                    {getRoleBadge(membership.role)}
+                  </div>
+                </div>
+                {isSelected && <Check className="h-4 w-4" />}
+              </Button>
+            );
+          })}
+          
+          {currentTenant && (
             <Button
-              key={membership.id}
-              variant="outline"
-              className="w-full justify-start"
-              onClick={() => handleSelect(membership.tenant_id)}
+              variant="ghost"
+              className="w-full mt-4"
+              onClick={() => navigate(-1)}
             >
-              <div className="flex flex-col items-start">
-                <span>{membership.tenant?.name ?? 'Sem nome'}</span>
-                <span className="text-xs text-muted-foreground">
-                  {membership.role === 'superadmin' && 'Super Admin'}
-                  {membership.role === 'tenant_admin' && 'Administrador'}
-                  {membership.role === 'tenant_user' && 'Usuário'}
-                </span>
-              </div>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Voltar
             </Button>
-          ))}
+          )}
         </CardContent>
       </Card>
     </div>
