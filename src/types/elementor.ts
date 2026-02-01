@@ -162,6 +162,7 @@ export interface WidgetSettings {
   dataUrlFields?: string[];  // Fields available from the URL response
   selectedValueField?: string;  // Which field to use for value
   selectedLabelField?: string;  // Which field to use for label (charts)
+  refreshInterval?: number;  // Auto-refresh interval in seconds (0 = manual)
 }
 
 export interface Section {

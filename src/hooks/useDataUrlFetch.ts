@@ -20,7 +20,8 @@ interface UseDataUrlFetchResult {
 
 export function useDataUrlFetch(
   dataUrl?: string,
-  context?: DataUrlContext
+  context?: DataUrlContext,
+  refreshInterval?: number
 ): UseDataUrlFetchResult {
   const { user } = useAuth();
   const { currentTenant } = useTenant();
@@ -32,7 +33,77 @@ export function useDataUrlFetch(
   // Create a stable key for the context to prevent unnecessary refetches
   const contextKey = JSON.stringify(context || {});
   const fetchedKeyRef = useRef<string | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  const fetchData = async (isInterval = false) => {
+    if (!isInterval) {
+      setLoading(true);
+    }
+    setError(null);
+
+    try {
+      // Build the request body with all context
+      const requestBody = {
+        // User context
+        user: user ? {
+          id: user.id,
+          email: user.email,
+          name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0],
+        } : null,
+        
+        // Tenant context
+        tenant: currentTenant ? {
+          id: currentTenant.id,
+          name: currentTenant.name,
+        } : null,
+        
+        // Widget/element context
+        widget: context ? {
+          id: context.widgetId,
+          type: context.widgetType,
+          title: context.widgetTitle,
+          fieldName: context.fieldName,
+        } : null,
+        
+        // Page context
+        page: context ? {
+          id: context.pageId,
+          slug: context.pageSlug,
+          title: context.pageTitle,
+        } : null,
+        
+        // Request metadata
+        meta: {
+          timestamp: new Date().toISOString(),
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          locale: navigator.language,
+        },
+      };
+
+      const response = await fetch(dataUrl!, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      setData(normalizeData(result));
+    } catch (err) {
+      console.error('Error fetching data URL:', err);
+      setError(err instanceof Error ? err.message : 'Erro desconhecido');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial fetch
   useEffect(() => {
     if (!dataUrl) {
       setData(null);
@@ -43,93 +114,37 @@ export function useDataUrlFetch(
 
     const currentKey = `${dataUrl}:${contextKey}`;
     
-    // Prevent duplicate fetches
+    // Prevent duplicate fetches on same key
     if (fetchedKeyRef.current === currentKey) {
       return;
     }
 
-    let cancelled = false;
+    fetchedKeyRef.current = currentKey;
+    fetchData(false);
+  }, [dataUrl, contextKey, user, currentTenant]);
 
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
+  // Interval-based refresh
+  useEffect(() => {
+    // Clear existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
 
-      try {
-        // Build the request body with all context
-        const requestBody = {
-          // User context
-          user: user ? {
-            id: user.id,
-            email: user.email,
-            name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0],
-          } : null,
-          
-          // Tenant context
-          tenant: currentTenant ? {
-            id: currentTenant.id,
-            name: currentTenant.name,
-          } : null,
-          
-          // Widget/element context
-          widget: context ? {
-            id: context.widgetId,
-            type: context.widgetType,
-            title: context.widgetTitle,
-            fieldName: context.fieldName,
-          } : null,
-          
-          // Page context
-          page: context ? {
-            id: context.pageId,
-            slug: context.pageSlug,
-            title: context.pageTitle,
-          } : null,
-          
-          // Request metadata
-          meta: {
-            timestamp: new Date().toISOString(),
-            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            locale: navigator.language,
-          },
-        };
-
-        const response = await fetch(dataUrl, {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestBody),
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const result = await response.json();
-        
-        if (!cancelled) {
-          setData(normalizeData(result));
-          fetchedKeyRef.current = currentKey;
-        }
-      } catch (err) {
-        if (!cancelled) {
-          console.error('Error fetching data URL:', err);
-          setError(err instanceof Error ? err.message : 'Erro desconhecido');
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchData();
+    // Set up new interval if configured and URL exists
+    if (dataUrl && refreshInterval && refreshInterval > 0) {
+      intervalRef.current = setInterval(() => {
+        fetchData(true);
+      }, refreshInterval * 1000);
+    }
 
     return () => {
-      cancelled = true;
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     };
-  }, [dataUrl, contextKey, user, currentTenant]);
+  }, [dataUrl, refreshInterval, contextKey, user, currentTenant]);
 
   return { data, loading, error };
 }
