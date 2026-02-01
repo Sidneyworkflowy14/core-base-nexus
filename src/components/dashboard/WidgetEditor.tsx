@@ -100,12 +100,12 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
 
           <div className="space-y-2">
             <Label>Reutilizar View (opcional)</Label>
-            <Select value={pageId} onValueChange={setPageId}>
+          <Select value={pageId || "__none__"} onValueChange={(v) => setPageId(v === "__none__" ? "" : v)}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione uma view..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhuma</SelectItem>
+                <SelectItem value="__none__">Nenhuma</SelectItem>
                 {pages.filter(p => p.status === 'published').map(page => (
                   <SelectItem key={page.id} value={page.id}>{page.title}</SelectItem>
                 ))}
@@ -115,12 +115,12 @@ export function WidgetEditor({ widget, open, onClose, onSave }: WidgetEditorProp
 
           <div className="space-y-2">
             <Label>Data Source</Label>
-            <Select value={dataSourceId} onValueChange={setDataSourceId}>
+          <Select value={dataSourceId || "__none__"} onValueChange={(v) => setDataSourceId(v === "__none__" ? "" : v)}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhuma</SelectItem>
+                <SelectItem value="__none__">Nenhuma</SelectItem>
                 {dataSources.map(ds => (
                   <SelectItem key={ds.id} value={ds.id}>{ds.name}</SelectItem>
                 ))}
