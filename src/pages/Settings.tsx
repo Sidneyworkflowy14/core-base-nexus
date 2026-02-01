@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTenant } from '@/contexts/TenantContext';
 import { useNavItems } from '@/hooks/useNavItems';
-import { useViews } from '@/hooks/useViews';
+import { usePages } from '@/hooks/usePages';
 import { AppLayout } from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,7 +18,7 @@ import { ArrowUp, ArrowDown, Trash, Plus } from 'lucide-react';
 export default function SettingsPage() {
   const { currentTenant } = useTenant();
   const { navItems, loading, createNavItem, updateNavItem, deleteNavItem, reorderNavItems } = useNavItems();
-  const { views } = useViews();
+  const { pages } = usePages();
 
   const [newItem, setNewItem] = useState({
     title: '',
@@ -150,9 +150,9 @@ export default function SettingsPage() {
                 Adicionar
               </Button>
             </form>
-            {views.length > 0 && (
+            {pages.length > 0 && (
               <p className="mt-2 text-xs text-muted-foreground">
-                Views disponíveis: {views.map((v) => `/views/${v.slug}`).join(', ')}
+                Pages disponíveis: {pages.map((p) => `/views/${p.slug}`).join(', ')}
               </p>
             )}
           </CardContent>

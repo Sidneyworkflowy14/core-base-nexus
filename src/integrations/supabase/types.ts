@@ -55,6 +55,47 @@ export type Database = {
           },
         ]
       }
+      data_sources: {
+        Row: {
+          config: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          tenant_id: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          tenant_id: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          tenant_id?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_sources_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       memberships: {
         Row: {
           created_at: string
@@ -87,6 +128,114 @@ export type Database = {
           },
         ]
       }
+      page_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          page_id: string
+          schema_json: Json
+          tenant_id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          page_id: string
+          schema_json: Json
+          tenant_id: string
+          version: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          page_id?: string
+          schema_json?: Json
+          tenant_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_versions_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "pages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "page_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pages: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_source_id: string | null
+          filter_params: Json | null
+          has_filters: boolean
+          id: string
+          schema_json: Json
+          slug: string
+          status: string
+          tenant_id: string
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_source_id?: string | null
+          filter_params?: Json | null
+          has_filters?: boolean
+          id?: string
+          schema_json?: Json
+          slug: string
+          status?: string
+          tenant_id: string
+          title: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_source_id?: string | null
+          filter_params?: Json | null
+          has_filters?: boolean
+          id?: string
+          schema_json?: Json
+          slug?: string
+          status?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pages_data_source_id_fkey"
+            columns: ["data_source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           created_at: string
@@ -107,47 +256,6 @@ export type Database = {
           status?: string
         }
         Relationships: []
-      }
-      views: {
-        Row: {
-          content: Json | null
-          created_at: string
-          id: string
-          is_published: boolean
-          slug: string
-          tenant_id: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          content?: Json | null
-          created_at?: string
-          id?: string
-          is_published?: boolean
-          slug: string
-          tenant_id: string
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          content?: Json | null
-          created_at?: string
-          id?: string
-          is_published?: boolean
-          slug?: string
-          tenant_id?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "views_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
       }
     }
     Views: {
