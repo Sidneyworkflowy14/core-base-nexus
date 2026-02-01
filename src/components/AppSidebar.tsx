@@ -39,6 +39,7 @@ export function AppSidebar() {
     ? [
         { title: 'Usuários', route: '/users', icon: 'users' },
         { title: 'Views', route: '/views', icon: 'layout' },
+        { title: 'Data Sources', route: '/data-sources', icon: 'database' },
         { title: 'Configurações', route: '/settings', icon: 'settings' },
       ]
     : [];

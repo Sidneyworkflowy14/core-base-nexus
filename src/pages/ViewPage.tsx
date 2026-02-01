@@ -1,40 +1,81 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTenant } from '@/contexts/TenantContext';
-import { useViews } from '@/hooks/useViews';
+import { usePages } from '@/hooks/usePages';
+import { useDataSources } from '@/hooks/useDataSources';
 import { AppLayout } from '@/components/AppLayout';
+import { BlockRenderer } from '@/components/builder/BlockRenderer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { View } from '@/types/nav';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Page, Block, FilterParam } from '@/types/builder';
 
 export default function ViewPage() {
   const { slug } = useParams<{ slug: string }>();
   const { currentTenant } = useTenant();
-  const { getViewBySlug } = useViews();
-  const [view, setView] = useState<View | null>(null);
+  const { getPageBySlug } = usePages();
+  const { getDataSourceById, testDataSource } = useDataSources();
+
+  const [page, setPage] = useState<Page | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [data, setData] = useState<unknown>(null);
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  const [loadingData, setLoadingData] = useState(false);
+
+  const loadPage = useCallback(async () => {
+    if (!slug || !currentTenant) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    const foundPage = await getPageBySlug(slug);
+
+    if (foundPage) {
+      setPage(foundPage);
+      setNotFound(false);
+
+      // Initialize filter values
+      if (foundPage.filter_params) {
+        const initial: Record<string, string> = {};
+        foundPage.filter_params.forEach((p) => {
+          initial[p.key] = '';
+        });
+        setFilterValues(initial);
+      }
+
+      // Load data source if exists
+      if (foundPage.data_source_id) {
+        await loadData(foundPage.data_source_id, {});
+      }
+    } else {
+      setNotFound(true);
+    }
+    setLoading(false);
+  }, [slug, currentTenant]);
+
+  const loadData = async (dsId: string, params: Record<string, string>) => {
+    const ds = await getDataSourceById(dsId);
+    if (!ds) return;
+
+    setLoadingData(true);
+    const result = await testDataSource(ds, params);
+    if (!result.error) {
+      setData(result.data);
+    }
+    setLoadingData(false);
+  };
 
   useEffect(() => {
-    const loadView = async () => {
-      if (!slug || !currentTenant) {
-        setLoading(false);
-        return;
-      }
+    loadPage();
+  }, [loadPage]);
 
-      setLoading(true);
-      const foundView = await getViewBySlug(slug);
-      
-      if (foundView) {
-        setView(foundView);
-        setNotFound(false);
-      } else {
-        setNotFound(true);
-      }
-      setLoading(false);
-    };
-
-    loadView();
-  }, [slug, currentTenant]);
+  const handleFilter = async () => {
+    if (!page?.data_source_id) return;
+    await loadData(page.data_source_id, filterValues);
+  };
 
   if (!currentTenant) {
     return (
@@ -52,17 +93,17 @@ export default function ViewPage() {
     );
   }
 
-  if (notFound || !view) {
+  if (notFound || !page) {
     return (
       <AppLayout>
         <div className="max-w-4xl">
           <Card>
             <CardHeader>
-              <CardTitle>View não encontrada</CardTitle>
+              <CardTitle>Página não encontrada</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                A view "{slug}" não existe ou você não tem permissão para acessá-la.
+                A página "{slug}" não existe ou você não tem permissão para acessá-la.
               </p>
             </CardContent>
           </Card>
@@ -71,57 +112,63 @@ export default function ViewPage() {
     );
   }
 
+  const sortedBlocks = [...(page.schema_json.blocks || [])].sort((a, b) => a.order - b.order);
+
   return (
     <AppLayout>
-      <div className="max-w-4xl space-y-6">
+      <div className="max-w-6xl space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold">{view.title}</h1>
-          <p className="text-muted-foreground font-mono text-sm">/views/{view.slug}</p>
+          <h1 className="text-2xl font-semibold">{page.title}</h1>
+          {page.status === 'draft' && (
+            <span className="text-sm text-muted-foreground">(Rascunho)</span>
+          )}
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Conteúdo da View</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {Object.keys(view.content).length === 0 ? (
-              <div className="text-muted-foreground">
-                <p>Esta view ainda não tem conteúdo.</p>
-                <p className="mt-2 text-sm">
-                  O page builder será implementado em uma próxima etapa.
-                </p>
+        {/* Filters */}
+        {page.has_filters && page.filter_params && page.filter_params.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Filtros</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-4 items-end">
+                {page.filter_params.map((param: FilterParam) => (
+                  <div key={param.key} className="space-y-2">
+                    <Label>{param.label}</Label>
+                    <Input
+                      type={param.type === 'date' ? 'date' : 'text'}
+                      value={filterValues[param.key] || ''}
+                      onChange={(e) =>
+                        setFilterValues({ ...filterValues, [param.key]: e.target.value })
+                      }
+                      className="w-48"
+                    />
+                  </div>
+                ))}
+                <Button onClick={handleFilter} disabled={loadingData}>
+                  {loadingData ? 'Carregando...' : 'Aplicar'}
+                </Button>
               </div>
-            ) : (
-              <pre className="bg-muted p-4 rounded-md text-sm overflow-auto">
-                {JSON.stringify(view.content, null, 2)}
-              </pre>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Metadados</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">ID:</span>
-              <span className="font-mono">{view.id}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Status:</span>
-              <span>{view.is_published ? 'Publicada' : 'Rascunho'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Criada em:</span>
-              <span>{new Date(view.created_at).toLocaleString('pt-BR')}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Atualizada em:</span>
-              <span>{new Date(view.updated_at).toLocaleString('pt-BR')}</span>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Blocks */}
+        {sortedBlocks.length === 0 ? (
+          <Card>
+            <CardContent className="py-8">
+              <p className="text-muted-foreground text-center">
+                Esta página ainda não tem conteúdo.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {sortedBlocks.map((block: Block) => (
+              <BlockRenderer key={block.id} block={block} data={data} />
+            ))}
+          </div>
+        )}
       </div>
     </AppLayout>
   );

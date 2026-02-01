@@ -14,6 +14,8 @@ import SuperAdminPage from "./pages/SuperAdmin";
 import SettingsPage from "./pages/Settings";
 import ViewsPage from "./pages/Views";
 import ViewPage from "./pages/ViewPage";
+import PageEditorPage from "./pages/PageEditor";
+import DataSourcesPage from "./pages/DataSources";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -70,10 +72,26 @@ const App = () => (
                 }
               />
               <Route
+                path="/views/:id/edit"
+                element={
+                  <ProtectedRoute requireTenant minRole="tenant_admin">
+                    <PageEditorPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/views/:slug"
                 element={
                   <ProtectedRoute requireTenant>
                     <ViewPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/data-sources"
+                element={
+                  <ProtectedRoute requireTenant minRole="tenant_admin">
+                    <DataSourcesPage />
                   </ProtectedRoute>
                 }
               />
