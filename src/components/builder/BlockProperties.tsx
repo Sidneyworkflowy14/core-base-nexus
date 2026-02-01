@@ -1,11 +1,12 @@
-import { Block, BlockType, HeadingBlock, TextBlock, TableBlock, KpiBlock, ChartBlock } from '@/types/builder';
+import { Block, BlockType, HeadingBlock, TextBlock, TableBlock, KpiBlock, ChartBlock, HtmlBlock } from '@/types/builder';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash } from 'lucide-react';
+import { Plus, Trash, Code, AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface BlockPropertiesProps {
   block: Block | null;
@@ -48,6 +49,10 @@ export function BlockProperties({ block, onUpdate, dataSourceFields = [] }: Bloc
 
       {block.type === 'chart' && (
         <ChartProperties block={block} onUpdate={updateProps} dataSourceFields={dataSourceFields} />
+      )}
+
+      {block.type === 'html' && (
+        <HtmlProperties block={block} onUpdate={updateProps} dataSourceFields={dataSourceFields} />
       )}
     </div>
   );
@@ -348,6 +353,75 @@ function ChartProperties({ block, onUpdate, dataSourceFields }: { block: ChartBl
           </>
         )}
       </div>
+    </>
+  );
+}
+
+function HtmlProperties({ block, onUpdate, dataSourceFields }: { block: HtmlBlock; onUpdate: (props: any) => void; dataSourceFields: string[] }) {
+  return (
+    <>
+      <Alert variant="default" className="border-warning/50 bg-warning/10">
+        <AlertTriangle className="h-4 w-4 text-warning" />
+        <AlertDescription className="text-xs">
+          Use variáveis como <code className="bg-muted px-1 rounded">{`{{campo}}`}</code> para dados dinâmicos.
+        </AlertDescription>
+      </Alert>
+
+      <div className="space-y-2">
+        <Label className="flex items-center gap-2">
+          <Code className="h-4 w-4" />
+          HTML
+        </Label>
+        <Textarea
+          value={block.props.html}
+          onChange={(e) => onUpdate({ html: e.target.value })}
+          rows={10}
+          className="font-mono text-xs"
+          placeholder="<div>Seu HTML aqui...</div>"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>CSS (Estilos)</Label>
+        <Textarea
+          value={block.props.css || ''}
+          onChange={(e) => onUpdate({ css: e.target.value })}
+          rows={8}
+          className="font-mono text-xs"
+          placeholder=".classe { color: red; }"
+        />
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div className="space-y-1">
+          <Label>Permitir Scripts</Label>
+          <p className="text-xs text-muted-foreground">Executar JavaScript customizado</p>
+        </div>
+        <Switch
+          checked={block.props.enableScripts || false}
+          onCheckedChange={(enableScripts) => onUpdate({ enableScripts })}
+        />
+      </div>
+
+      {dataSourceFields.length > 0 && (
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground">Campos disponíveis:</Label>
+          <div className="flex flex-wrap gap-1">
+            {dataSourceFields.map((field) => (
+              <code
+                key={field}
+                className="text-xs bg-muted px-2 py-1 rounded cursor-pointer hover:bg-primary/20 transition-colors"
+                onClick={() => {
+                  navigator.clipboard.writeText(`{{${field}}}`);
+                }}
+                title="Clique para copiar"
+              >
+                {`{{${field}}}`}
+              </code>
+            ))}
+          </div>
+        </div>
+      )}
     </>
   );
 }

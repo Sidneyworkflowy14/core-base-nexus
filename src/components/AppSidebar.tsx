@@ -1,9 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Shield, Menu, ChevronDown } from 'lucide-react';
+import { Shield, Menu, ChevronDown, FileText } from 'lucide-react';
 import { useRoles } from '@/hooks/useRoles';
 import { useTenant } from '@/contexts/TenantContext';
 import { useNavItems } from '@/hooks/useNavItems';
 import { useBranding } from '@/hooks/useBranding';
+import { usePages } from '@/hooks/usePages';
 import { DynamicIcon } from './DynamicIcon';
 import { NexusBadge } from '@/components/nexus';
 import {
@@ -28,6 +29,10 @@ export function AppSidebar() {
   const { isTenantAdmin, isSuperAdmin } = useRoles();
   const { visibleNavItems } = useNavItems();
   const { logoUrl } = useBranding();
+  const { pages } = usePages();
+
+  // Get published pages for sidebar
+  const publishedPages = pages.filter((p) => p.status === 'published');
 
   const isActive = (path: string) => location.pathname === path;
   const collapsed = state === 'collapsed';
@@ -120,6 +125,38 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Published Views */}
+        {publishedPages.length > 0 && (
+          <SidebarGroup className="mt-6">
+            {!collapsed && (
+              <SidebarGroupLabel className="nexus-section-label mb-2">
+                Views
+              </SidebarGroupLabel>
+            )}
+            <SidebarGroupContent>
+              <SidebarMenu className="space-y-1">
+                {publishedPages.map((page) => (
+                  <SidebarMenuItem key={page.id}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(`/views/${page.slug}`)}
+                      className={cn(
+                        "nexus-menu-item",
+                        isActive(`/views/${page.slug}`) && "nexus-menu-item-active"
+                      )}
+                    >
+                      <Link to={`/views/${page.slug}`}>
+                        <FileText className="h-5 w-5" />
+                        {!collapsed && <span>{page.title}</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {/* Dynamic Navigation Items */}
         {visibleNavItems.length > 0 && (

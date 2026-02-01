@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useTenant } from '@/contexts/TenantContext';
 import { usePages } from '@/hooks/usePages';
 import { useDataSources } from '@/hooks/useDataSources';
+import { useRoles } from '@/hooks/useRoles';
 import { AppLayout } from '@/components/AppLayout';
 import { BlockRenderer } from '@/components/builder/BlockRenderer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,12 +11,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Page, Block, FilterParam } from '@/types/builder';
+import { Edit, Eye } from 'lucide-react';
+import { NexusBadge } from '@/components/nexus';
 
 export default function ViewPage() {
   const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
   const { currentTenant } = useTenant();
   const { getPageBySlug } = usePages();
   const { getDataSourceById, testDataSource } = useDataSources();
+  const { isTenantAdmin } = useRoles();
 
   const [page, setPage] = useState<Page | null>(null);
   const [loading, setLoading] = useState(true);
@@ -117,10 +122,21 @@ export default function ViewPage() {
   return (
     <AppLayout>
       <div className="max-w-6xl space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold">{page.title}</h1>
-          {page.status === 'draft' && (
-            <span className="text-sm text-muted-foreground">(Rascunho)</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-semibold">{page.title}</h1>
+            {page.status === 'draft' && (
+              <NexusBadge variant="warning">Rascunho</NexusBadge>
+            )}
+          </div>
+          {isTenantAdmin && (
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/views/editor/${page.id}`)}
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Editar
+            </Button>
           )}
         </div>
 
