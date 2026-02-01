@@ -186,7 +186,13 @@ export default function ViewPage() {
             </CardContent>
           </Card>
         ) : hasElementorContent ? (
-          <ElementorPageRenderer sections={sections} previewData={data} />
+          <ElementorPageRenderer 
+            sections={sections} 
+            previewData={data}
+            pageId={page.id}
+            pageSlug={page.slug}
+            pageTitle={page.title}
+          />
         ) : (
           <div className="space-y-4">
             {sortedBlocks.map((block: Block) => (

@@ -1,4 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useTenant } from '@/contexts/TenantContext';
+
+export interface DataUrlContext {
+  widgetId?: string;
+  widgetType?: string;
+  widgetTitle?: string;
+  pageId?: string;
+  pageSlug?: string;
+  pageTitle?: string;
+  fieldName?: string;
+}
 
 interface UseDataUrlFetchResult {
   data: unknown;
@@ -6,22 +18,33 @@ interface UseDataUrlFetchResult {
   error: string | null;
 }
 
-export function useDataUrlFetch(dataUrl?: string): UseDataUrlFetchResult {
+export function useDataUrlFetch(
+  dataUrl?: string,
+  context?: DataUrlContext
+): UseDataUrlFetchResult {
+  const { user } = useAuth();
+  const { currentTenant } = useTenant();
+  
   const [data, setData] = useState<unknown>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const fetchedUrlRef = useRef<string | null>(null);
+  
+  // Create a stable key for the context to prevent unnecessary refetches
+  const contextKey = JSON.stringify(context || {});
+  const fetchedKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!dataUrl) {
       setData(null);
       setError(null);
-      fetchedUrlRef.current = null;
+      fetchedKeyRef.current = null;
       return;
     }
 
+    const currentKey = `${dataUrl}:${contextKey}`;
+    
     // Prevent duplicate fetches
-    if (fetchedUrlRef.current === dataUrl) {
+    if (fetchedKeyRef.current === currentKey) {
       return;
     }
 
@@ -32,11 +55,51 @@ export function useDataUrlFetch(dataUrl?: string): UseDataUrlFetchResult {
       setError(null);
 
       try {
+        // Build the request body with all context
+        const requestBody = {
+          // User context
+          user: user ? {
+            id: user.id,
+            email: user.email,
+            name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0],
+          } : null,
+          
+          // Tenant context
+          tenant: currentTenant ? {
+            id: currentTenant.id,
+            name: currentTenant.name,
+          } : null,
+          
+          // Widget/element context
+          widget: context ? {
+            id: context.widgetId,
+            type: context.widgetType,
+            title: context.widgetTitle,
+            fieldName: context.fieldName,
+          } : null,
+          
+          // Page context
+          page: context ? {
+            id: context.pageId,
+            slug: context.pageSlug,
+            title: context.pageTitle,
+          } : null,
+          
+          // Request metadata
+          meta: {
+            timestamp: new Date().toISOString(),
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            locale: navigator.language,
+          },
+        };
+
         const response = await fetch(dataUrl, {
-          method: 'GET',
+          method: 'POST',
           headers: {
             'Accept': 'application/json',
+            'Content-Type': 'application/json',
           },
+          body: JSON.stringify(requestBody),
         });
 
         if (!response.ok) {
@@ -47,7 +110,7 @@ export function useDataUrlFetch(dataUrl?: string): UseDataUrlFetchResult {
         
         if (!cancelled) {
           setData(normalizeData(result));
-          fetchedUrlRef.current = dataUrl;
+          fetchedKeyRef.current = currentKey;
         }
       } catch (err) {
         if (!cancelled) {
@@ -66,7 +129,7 @@ export function useDataUrlFetch(dataUrl?: string): UseDataUrlFetchResult {
     return () => {
       cancelled = true;
     };
-  }, [dataUrl]);
+  }, [dataUrl, contextKey, user, currentTenant]);
 
   return { data, loading, error };
 }

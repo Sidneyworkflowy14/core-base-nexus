@@ -1,5 +1,6 @@
 import { Widget } from '@/types/elementor';
-import { useDataUrlFetch } from '@/hooks/useDataUrlFetch';
+import { useDataUrlFetch, DataUrlContext } from '@/hooks/useDataUrlFetch';
+import { usePageContext } from '@/contexts/PageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DynamicIcon } from '@/components/DynamicIcon';
@@ -18,9 +19,24 @@ const CHART_COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(-
 
 export function ElementorWidgetRenderer({ widget, previewData }: ElementorWidgetRendererProps) {
   const { widgetType, settings } = widget;
+  const pageContext = usePageContext();
   
-  // Fetch data from URL if configured
-  const { data: urlData, loading: urlLoading, error: urlError } = useDataUrlFetch(settings.dataUrl);
+  // Build context for data URL fetch
+  const dataUrlContext: DataUrlContext = {
+    widgetId: widget.id,
+    widgetType: widget.widgetType,
+    widgetTitle: settings.title || settings.text || settings.label,
+    pageId: pageContext.pageId,
+    pageSlug: pageContext.pageSlug,
+    pageTitle: pageContext.pageTitle,
+    fieldName: settings.selectedValueField || settings.selectedLabelField,
+  };
+  
+  // Fetch data from URL if configured (now sends POST with context)
+  const { data: urlData, loading: urlLoading, error: urlError } = useDataUrlFetch(
+    settings.dataUrl,
+    settings.dataUrl ? dataUrlContext : undefined
+  );
 
   // Get custom styles
   const customStyles = getWidgetStyles(settings.widgetStyle);
