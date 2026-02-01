@@ -7,6 +7,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
+import { getWidgetStyles, getWidgetClasses } from '@/lib/widgetStyles';
 
 interface ElementorWidgetRendererProps {
   widget: Widget;
@@ -20,6 +21,10 @@ export function ElementorWidgetRenderer({ widget, previewData }: ElementorWidget
   
   // Fetch data from URL if configured
   const { data: urlData, loading: urlLoading, error: urlError } = useDataUrlFetch(settings.dataUrl);
+
+  // Get custom styles
+  const customStyles = getWidgetStyles(settings.widgetStyle);
+  const customClasses = getWidgetClasses(settings.widgetStyle);
 
   switch (widgetType) {
     case 'heading': {
@@ -39,7 +44,7 @@ export function ElementorWidgetRenderer({ widget, previewData }: ElementorWidget
       }[settings.align || 'left'];
       
       return (
-        <Tag className={cn(sizeClass, alignClass, "py-2")}>
+        <Tag className={cn(sizeClass, alignClass, "py-2", customClasses)} style={customStyles}>
           {settings.text || 'Título'}
         </Tag>
       );
@@ -47,11 +52,14 @@ export function ElementorWidgetRenderer({ widget, previewData }: ElementorWidget
 
     case 'text':
       return (
-        <p className={cn("text-muted-foreground py-2", {
-          'text-left': settings.align === 'left',
-          'text-center': settings.align === 'center',
-          'text-right': settings.align === 'right',
-        })}>
+        <p 
+          className={cn("text-muted-foreground py-2", customClasses, {
+            'text-left': settings.align === 'left',
+            'text-center': settings.align === 'center',
+            'text-right': settings.align === 'right',
+          })}
+          style={customStyles}
+        >
           {settings.content || 'Digite seu texto aqui...'}
         </p>
       );
@@ -59,7 +67,10 @@ export function ElementorWidgetRenderer({ widget, previewData }: ElementorWidget
     case 'image':
       if (!settings.src) {
         return (
-          <div className="bg-muted/50 rounded-lg h-40 flex items-center justify-center">
+          <div 
+            className={cn("bg-muted/50 rounded-lg h-40 flex items-center justify-center", customClasses)}
+            style={customStyles}
+          >
             <DynamicIcon name="image" className="h-10 w-10 text-muted-foreground" />
           </div>
         );
@@ -68,19 +79,23 @@ export function ElementorWidgetRenderer({ widget, previewData }: ElementorWidget
         <img 
           src={settings.src} 
           alt={settings.alt || ''} 
-          className={cn("rounded-lg max-w-full", {
+          className={cn("rounded-lg max-w-full", customClasses, {
             'w-full': settings.size === 'full',
           })}
+          style={customStyles}
         />
       );
 
     case 'button':
       return (
-        <div className={cn("py-2", {
-          'text-left': settings.align === 'left',
-          'text-center': settings.align === 'center',
-          'text-right': settings.align === 'right',
-        })}>
+        <div 
+          className={cn("py-2", customClasses, {
+            'text-left': settings.align === 'left',
+            'text-center': settings.align === 'center',
+            'text-right': settings.align === 'right',
+          })}
+          style={customStyles}
+        >
           <Button variant={settings.variant === 'primary' ? 'default' : settings.variant as any}>
             {settings.label || 'Botão'}
           </Button>
@@ -88,26 +103,29 @@ export function ElementorWidgetRenderer({ widget, previewData }: ElementorWidget
       );
 
     case 'spacer':
-      return <div style={{ height: settings.height || 40 }} />;
+      return <div style={{ height: settings.height || 40, ...customStyles }} className={customClasses} />;
 
     case 'divider':
       return (
-        <div className={cn("py-4", {
-          'w-full': settings.width === 'full',
-          'w-1/2 mx-auto': settings.width === 'half',
-          'w-1/3 mx-auto': settings.width === 'third',
-        })}>
+        <div 
+          className={cn("py-4", customClasses, {
+            'w-full': settings.width === 'full',
+            'w-1/2 mx-auto': settings.width === 'half',
+            'w-1/3 mx-auto': settings.width === 'third',
+          })}
+          style={customStyles}
+        >
           <hr className={cn("border-border", {
-            'border-solid': settings.style === 'solid',
-            'border-dashed': settings.style === 'dashed',
-            'border-dotted': settings.style === 'dotted',
+            'border-solid': settings.dividerStyle === 'solid',
+            'border-dashed': settings.dividerStyle === 'dashed',
+            'border-dotted': settings.dividerStyle === 'dotted',
           })} />
         </div>
       );
 
     case 'icon':
       return (
-        <div className="flex justify-center py-4">
+        <div className={cn("flex justify-center py-4", customClasses)} style={customStyles}>
           <div style={{ width: settings.iconSize || 48, height: settings.iconSize || 48 }}>
             <DynamicIcon 
               name={settings.icon || 'star'} 
@@ -120,13 +138,19 @@ export function ElementorWidgetRenderer({ widget, previewData }: ElementorWidget
     case 'video':
       if (!settings.videoUrl) {
         return (
-          <div className="bg-muted/50 rounded-lg h-40 flex items-center justify-center">
+          <div 
+            className={cn("bg-muted/50 rounded-lg h-40 flex items-center justify-center", customClasses)}
+            style={customStyles}
+          >
             <DynamicIcon name="play" className="h-10 w-10 text-muted-foreground" />
           </div>
         );
       }
       return (
-        <div className="aspect-video rounded-lg overflow-hidden bg-black">
+        <div 
+          className={cn("aspect-video rounded-lg overflow-hidden bg-black", customClasses)}
+          style={customStyles}
+        >
           <iframe
             src={settings.videoUrl}
             className="w-full h-full"
@@ -138,7 +162,8 @@ export function ElementorWidgetRenderer({ widget, previewData }: ElementorWidget
     case 'html':
       return (
         <div 
-          className="py-2"
+          className={cn("py-2", customClasses)}
+          style={customStyles}
           dangerouslySetInnerHTML={{ __html: settings.html || '' }}
         />
       );
@@ -172,7 +197,7 @@ export function ElementorWidgetRenderer({ widget, previewData }: ElementorWidget
 
       if (urlLoading) {
         return (
-          <Card>
+          <Card className={customClasses} style={customStyles}>
             <CardContent className="py-8 flex items-center justify-center">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </CardContent>
@@ -182,7 +207,7 @@ export function ElementorWidgetRenderer({ widget, previewData }: ElementorWidget
 
       if (urlError) {
         return (
-          <Card>
+          <Card className={customClasses} style={customStyles}>
             <CardContent className="py-8">
               <p className="text-destructive text-sm text-center">Erro: {urlError}</p>
             </CardContent>
@@ -191,7 +216,7 @@ export function ElementorWidgetRenderer({ widget, previewData }: ElementorWidget
       }
 
       return (
-        <Card>
+        <Card className={customClasses} style={customStyles}>
           {settings.title && (
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">{settings.title}</CardTitle>
@@ -255,7 +280,7 @@ export function ElementorWidgetRenderer({ widget, previewData }: ElementorWidget
 
       if (urlLoading) {
         return (
-          <Card>
+          <Card className={customClasses} style={customStyles}>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 {settings.title || 'KPI'}
@@ -269,7 +294,7 @@ export function ElementorWidgetRenderer({ widget, previewData }: ElementorWidget
       }
 
       return (
-        <Card>
+        <Card className={customClasses} style={customStyles}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               {settings.title || 'KPI'}
@@ -301,7 +326,7 @@ export function ElementorWidgetRenderer({ widget, previewData }: ElementorWidget
 
       if (urlLoading) {
         return (
-          <Card>
+          <Card className={customClasses} style={customStyles}>
             <CardContent className="py-8 flex items-center justify-center">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </CardContent>
@@ -311,7 +336,7 @@ export function ElementorWidgetRenderer({ widget, previewData }: ElementorWidget
       
       if (chartData.length === 0) {
         return (
-          <Card>
+          <Card className={customClasses} style={customStyles}>
             <CardContent className="py-8">
               <p className="text-muted-foreground text-center text-sm">
                 {settings.dataUrl ? 'Configure os campos de label e valor' : 'Configure os dados do gráfico'}
@@ -322,7 +347,7 @@ export function ElementorWidgetRenderer({ widget, previewData }: ElementorWidget
       }
 
       return (
-        <Card>
+        <Card className={customClasses} style={customStyles}>
           {settings.title && (
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">{settings.title}</CardTitle>
@@ -377,7 +402,10 @@ export function ElementorWidgetRenderer({ widget, previewData }: ElementorWidget
 
     default:
       return (
-        <div className="p-4 bg-muted rounded-md text-center text-muted-foreground text-sm">
+        <div 
+          className={cn("p-4 bg-muted rounded-md text-center text-muted-foreground text-sm", customClasses)}
+          style={customStyles}
+        >
           Widget: {widgetType}
         </div>
       );

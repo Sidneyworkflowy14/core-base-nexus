@@ -40,7 +40,60 @@ export type WidgetType =
   | 'kpi'
   | 'chart';
 
+// Common style properties for all widgets (Elementor-style)
+export interface WidgetStyleSettings {
+  // Sizing
+  width?: 'auto' | 'full' | 'custom';
+  customWidth?: number;
+  widthUnit?: 'px' | '%' | 'vw';
+  height?: 'auto' | 'custom';
+  customHeight?: number;
+  heightUnit?: 'px' | '%' | 'vh';
+  minHeight?: number;
+  maxWidth?: number;
+  
+  // Margin
+  marginTop?: number;
+  marginRight?: number;
+  marginBottom?: number;
+  marginLeft?: number;
+  marginUnit?: 'px' | '%';
+  marginLinked?: boolean;
+  
+  // Padding
+  paddingTop?: number;
+  paddingRight?: number;
+  paddingBottom?: number;
+  paddingLeft?: number;
+  paddingUnit?: 'px' | '%';
+  paddingLinked?: boolean;
+  
+  // Border
+  borderWidth?: number;
+  borderStyle?: 'none' | 'solid' | 'dashed' | 'dotted';
+  borderColor?: string;
+  borderRadius?: number;
+  
+  // Background
+  backgroundColor?: string;
+  backgroundImage?: string;
+  backgroundSize?: 'cover' | 'contain' | 'auto';
+  backgroundPosition?: 'center' | 'top' | 'bottom' | 'left' | 'right';
+  
+  // Effects
+  opacity?: number;
+  boxShadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+  
+  // Responsive visibility
+  hideOnMobile?: boolean;
+  hideOnTablet?: boolean;
+  hideOnDesktop?: boolean;
+}
+
 export interface WidgetSettings {
+  // Common style settings
+  widgetStyle?: WidgetStyleSettings;
+  
   // Heading
   text?: string;
   level?: 1 | 2 | 3 | 4 | 5 | 6;
@@ -66,7 +119,7 @@ export interface WidgetSettings {
   height?: number;
   
   // Divider
-  style?: 'solid' | 'dashed' | 'dotted';
+  dividerStyle?: 'solid' | 'dashed' | 'dotted';
   width?: 'full' | 'half' | 'third';
   
   // Icon
@@ -207,7 +260,7 @@ export function createWidget(widgetType: WidgetType): Widget {
     image: { src: '', alt: '', size: 'auto' },
     button: { label: 'Clique aqui', link: '#', variant: 'primary' },
     spacer: { height: 40 },
-    divider: { style: 'solid', width: 'full' },
+    divider: { dividerStyle: 'solid', width: 'full' },
     icon: { icon: 'star', iconSize: 48 },
     video: { videoUrl: '', autoplay: false, controls: true },
     html: { 
