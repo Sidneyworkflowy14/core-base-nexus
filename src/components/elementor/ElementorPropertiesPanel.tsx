@@ -456,7 +456,10 @@ function WidgetProperties({
           <DataUrlConfig
             dataUrl={settings.dataUrl}
             dataUrlFields={settings.dataUrlFields}
+            dataUrlMetrics={settings.dataUrlMetrics}
             selectedValueField={settings.selectedValueField}
+            selectedMetric={settings.selectedMetric}
+            refreshInterval={settings.refreshInterval}
             onUpdate={onUpdate}
           />
           
@@ -535,8 +538,11 @@ function WidgetProperties({
           <DataUrlConfig
             dataUrl={settings.dataUrl}
             dataUrlFields={settings.dataUrlFields}
+            dataUrlMetrics={settings.dataUrlMetrics}
             selectedValueField={settings.selectedValueField}
             selectedLabelField={settings.selectedLabelField}
+            selectedMetric={settings.selectedMetric}
+            refreshInterval={settings.refreshInterval}
             showLabelField={true}
             onUpdate={onUpdate}
           />
@@ -557,7 +563,10 @@ function WidgetProperties({
           <DataUrlConfig
             dataUrl={settings.dataUrl}
             dataUrlFields={settings.dataUrlFields}
+            dataUrlMetrics={settings.dataUrlMetrics}
             selectedValueField={settings.selectedValueField}
+            selectedMetric={settings.selectedMetric}
+            refreshInterval={settings.refreshInterval}
             onUpdate={onUpdate}
           />
           

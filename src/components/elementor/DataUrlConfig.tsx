@@ -9,15 +9,19 @@ import { toast } from 'sonner';
 interface DataUrlConfigProps {
   dataUrl?: string;
   dataUrlFields?: string[];
+  dataUrlMetrics?: string[];  // Metrics available when using label/value format
   selectedValueField?: string;
   selectedLabelField?: string;
+  selectedMetric?: string;  // Which metric (label value) to use
   refreshInterval?: number;
   showLabelField?: boolean;
   onUpdate: (settings: {
     dataUrl?: string;
     dataUrlFields?: string[];
+    dataUrlMetrics?: string[];
     selectedValueField?: string;
     selectedLabelField?: string;
+    selectedMetric?: string;
     refreshInterval?: number;
   }) => void;
 }
@@ -35,8 +39,10 @@ const REFRESH_OPTIONS = [
 export function DataUrlConfig({
   dataUrl,
   dataUrlFields = [],
+  dataUrlMetrics = [],
   selectedValueField,
   selectedLabelField,
+  selectedMetric,
   refreshInterval = 0,
   showLabelField = false,
   onUpdate,
@@ -100,15 +106,27 @@ export function DataUrlConfig({
 
       const data = await response.json();
       
-      // Extract available fields from response
-      const fields = extractFields(data);
+      // Extract available fields and metrics from response
+      const { fields, metrics, isLabelValueFormat } = extractFieldsAndMetrics(data);
       
-      if (fields.length === 0) {
+      if (fields.length === 0 && metrics.length === 0) {
         toast.warning('Nenhum campo encontrado na resposta');
         setTestStatus('error');
       } else {
-        onUpdate({ dataUrlFields: fields });
-        toast.success(`${fields.length} campos encontrados!`);
+        if (isLabelValueFormat && metrics.length > 0) {
+          // Data is in label/value format - show metrics
+          onUpdate({ 
+            dataUrlFields: fields, 
+            dataUrlMetrics: metrics,
+            selectedValueField: 'value',
+            selectedLabelField: 'label',
+          });
+          toast.success(`${metrics.length} métricas encontradas!`);
+        } else {
+          // Standard format - show fields
+          onUpdate({ dataUrlFields: fields, dataUrlMetrics: [] });
+          toast.success(`${fields.length} campos encontrados!`);
+        }
         setTestStatus('success');
       }
     } catch (error) {
@@ -120,36 +138,47 @@ export function DataUrlConfig({
     }
   };
 
-  const extractFields = (data: unknown): string[] => {
-    // Handle different response formats
-    let sample: Record<string, unknown> | null = null;
+  const extractFieldsAndMetrics = (data: unknown): { fields: string[]; metrics: string[]; isLabelValueFormat: boolean } => {
+    let dataArray: Record<string, unknown>[] = [];
 
-    if (Array.isArray(data) && data.length > 0) {
-      sample = data[0];
+    // Normalize to array
+    if (Array.isArray(data)) {
+      dataArray = data;
     } else if (typeof data === 'object' && data !== null) {
-      // Check if it's an object with data array
       const obj = data as Record<string, unknown>;
-      if (Array.isArray(obj.data) && obj.data.length > 0) {
-        sample = obj.data[0];
-      } else if (Array.isArray(obj.items) && obj.items.length > 0) {
-        sample = obj.items[0];
-      } else if (Array.isArray(obj.results) && obj.results.length > 0) {
-        sample = obj.results[0];
-      } else {
-        // Use the object itself
-        sample = obj;
-      }
+      if (Array.isArray(obj.data)) dataArray = obj.data;
+      else if (Array.isArray(obj.items)) dataArray = obj.items;
+      else if (Array.isArray(obj.results)) dataArray = obj.results;
+      else dataArray = [obj];
     }
 
-    if (!sample || typeof sample !== 'object') {
-      return [];
+    if (dataArray.length === 0) {
+      return { fields: [], metrics: [], isLabelValueFormat: false };
     }
 
-    return Object.keys(sample).filter(key => {
-      const value = sample![key];
-      // Only include primitive types (string, number, boolean)
+    const sample = dataArray[0];
+    
+    // Check if data is in label/value format
+    const hasLabel = 'label' in sample && typeof sample.label === 'string';
+    const hasValue = 'value' in sample && (typeof sample.value === 'number' || typeof sample.value === 'string');
+    const isLabelValueFormat = hasLabel && hasValue && dataArray.length > 1;
+
+    if (isLabelValueFormat) {
+      // Extract unique label values as metrics
+      const metrics = dataArray
+        .map(item => String(item.label))
+        .filter((label, index, arr) => arr.indexOf(label) === index);
+      
+      return { fields: ['label', 'value'], metrics, isLabelValueFormat: true };
+    }
+
+    // Standard format - extract field names
+    const fields = Object.keys(sample).filter(key => {
+      const value = sample[key];
       return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean';
     });
+
+    return { fields, metrics: [], isLabelValueFormat: false };
   };
 
   return (
@@ -193,7 +222,33 @@ export function DataUrlConfig({
         </div>
       </div>
 
-      {dataUrlFields.length > 0 && (
+      {/* Show metrics selector when using label/value format */}
+      {dataUrlMetrics.length > 0 && (
+        <div className="space-y-2">
+          <Label className="text-xs">Métrica</Label>
+          <Select
+            value={selectedMetric || ''}
+            onValueChange={(v) => onUpdate({ selectedMetric: v })}
+          >
+            <SelectTrigger className="text-xs">
+              <SelectValue placeholder="Selecione a métrica" />
+            </SelectTrigger>
+            <SelectContent>
+              {dataUrlMetrics.map((metric) => (
+                <SelectItem key={metric} value={metric}>
+                  {metric.replace(/_/g, ' ')}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="text-xs text-muted-foreground">
+            Métricas: {dataUrlMetrics.map(m => m.replace(/_/g, ' ')).join(', ')}
+          </div>
+        </div>
+      )}
+
+      {/* Show field selectors when using standard format */}
+      {dataUrlFields.length > 0 && dataUrlMetrics.length === 0 && (
         <>
           <div className="space-y-2">
             <Label className="text-xs">Campo de Valor</Label>

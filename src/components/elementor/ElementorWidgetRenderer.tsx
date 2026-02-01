@@ -271,13 +271,24 @@ export function ElementorWidgetRenderer({ widget, previewData }: ElementorWidget
       let value = settings.value || '0';
       
       // Use URL data if configured
-      if (settings.dataUrl && urlData && settings.selectedValueField) {
+      if (settings.dataUrl && urlData) {
         const dataArray = Array.isArray(urlData) ? urlData : [];
         if (dataArray.length > 0) {
-          const firstItem = dataArray[0] as Record<string, unknown>;
-          const urlValue = firstItem[settings.selectedValueField];
-          if (urlValue !== undefined) {
-            value = String(urlValue);
+          // Check if using metric format (label/value with selectedMetric)
+          if (settings.selectedMetric) {
+            const metricItem = dataArray.find(
+              (item: any) => item.label === settings.selectedMetric
+            );
+            if (metricItem && metricItem.value !== undefined) {
+              value = String(metricItem.value);
+            }
+          } else if (settings.selectedValueField) {
+            // Standard format - use selectedValueField
+            const firstItem = dataArray[0] as Record<string, unknown>;
+            const urlValue = firstItem[settings.selectedValueField];
+            if (urlValue !== undefined) {
+              value = String(urlValue);
+            }
           }
         }
       }
