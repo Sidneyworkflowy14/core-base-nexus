@@ -41,11 +41,26 @@ export function DataUrlConfig({
     setTestStatus('idle');
 
     try {
+      // Send a test POST request with sample context
+      const testPayload = {
+        user: { id: 'test-user-id', email: 'test@example.com', name: 'Test User' },
+        tenant: { id: 'test-tenant-id', name: 'Test Tenant' },
+        widget: { id: 'test-widget-id', type: 'test', title: 'Test Widget' },
+        page: { id: 'test-page-id', slug: 'test-page', title: 'Test Page' },
+        meta: {
+          timestamp: new Date().toISOString(),
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          locale: navigator.language,
+        },
+      };
+
       const response = await fetch(dataUrl, {
-        method: 'GET',
+        method: 'POST',
         headers: {
           'Accept': 'application/json',
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify(testPayload),
       });
 
       if (!response.ok) {
@@ -67,7 +82,7 @@ export function DataUrlConfig({
       }
     } catch (error) {
       console.error('Error testing URL:', error);
-      toast.error('Erro ao testar URL. Verifique se está acessível.');
+      toast.error('Erro ao testar URL. Verifique se está acessível e aceita POST.');
       setTestStatus('error');
     } finally {
       setTesting(false);
@@ -110,7 +125,11 @@ export function DataUrlConfig({
     <div className="space-y-3 p-3 bg-muted/50 rounded-lg border border-border">
       <div className="flex items-center gap-2 text-sm font-medium">
         <Link2 className="h-4 w-4" />
-        Dados via URL
+        Dados via URL (POST)
+      </div>
+      
+      <div className="text-xs text-muted-foreground bg-background/50 p-2 rounded">
+        A requisição envia automaticamente: <strong>usuário</strong>, <strong>tenant</strong>, <strong>página</strong>, <strong>widget</strong> e <strong>metadados</strong>.
       </div>
       
       <div className="space-y-2">

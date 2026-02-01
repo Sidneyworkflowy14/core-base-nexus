@@ -4,10 +4,13 @@ import { ElementorToolbar } from './ElementorToolbar';
 import { ElementorCanvas } from './ElementorCanvas';
 import { ElementorWidgetsPalette } from './ElementorWidgetsPalette';
 import { ElementorPropertiesPanel } from './ElementorPropertiesPanel';
+import { PageProvider } from '@/contexts/PageContext';
 import { cn } from '@/lib/utils';
 
 interface ElementorEditorProps {
   initialSections?: Section[];
+  pageId?: string;
+  pageSlug?: string;
   pageTitle: string;
   pageStatus: 'draft' | 'published';
   dataSourceFields?: string[];
@@ -21,6 +24,8 @@ interface ElementorEditorProps {
 
 export function ElementorEditor({
   initialSections = [],
+  pageId,
+  pageSlug,
   pageTitle,
   pageStatus,
   dataSourceFields = [],
@@ -253,71 +258,73 @@ export function ElementorEditor({
   };
 
   return (
-    <div className="h-screen flex flex-col bg-background">
-      {/* Toolbar */}
-      <ElementorToolbar
-        pageTitle={pageTitle}
-        pageStatus={pageStatus}
-        saving={saving}
-        publishing={publishing}
-        hasDataSource={hasDataSource}
-        onBack={onBack}
-        onSave={handleSave}
-        onPublish={handlePublish}
-        onTestData={onTestData}
-      />
-
-      {/* Main area */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel - Widget Palette */}
-        <ElementorWidgetsPalette
-          onAddSection={handleAddSection}
-          onWidgetDrag={(widgetType) => {
-            // For now, if there's a selected column, add widget there
-            if (selectedElement?.columnId && selectedElement?.sectionId) {
-              handleAddWidget(widgetType, selectedElement.sectionId, selectedElement.columnId);
-            }
-          }}
+    <PageProvider pageId={pageId} pageSlug={pageSlug} pageTitle={pageTitle}>
+      <div className="h-screen flex flex-col bg-background">
+        {/* Toolbar */}
+        <ElementorToolbar
+          pageTitle={pageTitle}
+          pageStatus={pageStatus}
+          saving={saving}
+          publishing={publishing}
+          hasDataSource={hasDataSource}
+          onBack={onBack}
+          onSave={handleSave}
+          onPublish={handlePublish}
+          onTestData={onTestData}
         />
 
-        {/* Center - Canvas */}
-        <div className="flex-1 overflow-hidden bg-muted/30">
-          <ElementorCanvas
-            sections={sections}
+        {/* Main area */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Left Panel - Widget Palette */}
+          <ElementorWidgetsPalette
+            onAddSection={handleAddSection}
+            onWidgetDrag={(widgetType) => {
+              // For now, if there's a selected column, add widget there
+              if (selectedElement?.columnId && selectedElement?.sectionId) {
+                handleAddWidget(widgetType, selectedElement.sectionId, selectedElement.columnId);
+              }
+            }}
+          />
+
+          {/* Center - Canvas */}
+          <div className="flex-1 overflow-hidden bg-muted/30">
+            <ElementorCanvas
+              sections={sections}
+              selectedElement={selectedElement}
+              previewData={previewData}
+              onSelectElement={setSelectedElement}
+              onAddWidget={handleAddWidget}
+              onDeleteSection={handleDeleteSection}
+              onDeleteWidget={handleDeleteWidget}
+              onMoveSection={handleMoveSection}
+              onMoveWidget={handleMoveWidget}
+              onDuplicateWidget={handleDuplicateWidget}
+            />
+          </div>
+
+          {/* Right Panel - Properties */}
+          <ElementorPropertiesPanel
+            selectedData={getSelectedData()}
             selectedElement={selectedElement}
-            previewData={previewData}
-            onSelectElement={setSelectedElement}
-            onAddWidget={handleAddWidget}
-            onDeleteSection={handleDeleteSection}
-            onDeleteWidget={handleDeleteWidget}
-            onMoveSection={handleMoveSection}
-            onMoveWidget={handleMoveWidget}
-            onDuplicateWidget={handleDuplicateWidget}
+            dataSourceFields={dataSourceFields}
+            onUpdateSection={(settings) => {
+              if (selectedElement?.sectionId) {
+                handleUpdateSection(selectedElement.sectionId, settings);
+              }
+            }}
+            onUpdateColumn={(settings) => {
+              if (selectedElement?.sectionId && selectedElement?.columnId) {
+                handleUpdateColumn(selectedElement.sectionId, selectedElement.columnId, settings);
+              }
+            }}
+            onUpdateWidget={(settings) => {
+              if (selectedElement?.sectionId && selectedElement?.columnId && selectedElement?.widgetId) {
+                handleUpdateWidget(selectedElement.sectionId, selectedElement.columnId, selectedElement.widgetId, settings);
+              }
+            }}
           />
         </div>
-
-        {/* Right Panel - Properties */}
-        <ElementorPropertiesPanel
-          selectedData={getSelectedData()}
-          selectedElement={selectedElement}
-          dataSourceFields={dataSourceFields}
-          onUpdateSection={(settings) => {
-            if (selectedElement?.sectionId) {
-              handleUpdateSection(selectedElement.sectionId, settings);
-            }
-          }}
-          onUpdateColumn={(settings) => {
-            if (selectedElement?.sectionId && selectedElement?.columnId) {
-              handleUpdateColumn(selectedElement.sectionId, selectedElement.columnId, settings);
-            }
-          }}
-          onUpdateWidget={(settings) => {
-            if (selectedElement?.sectionId && selectedElement?.columnId && selectedElement?.widgetId) {
-              handleUpdateWidget(selectedElement.sectionId, selectedElement.columnId, selectedElement.widgetId, settings);
-            }
-          }}
-        />
       </div>
-    </div>
+    </PageProvider>
   );
 }

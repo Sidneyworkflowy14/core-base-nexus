@@ -187,9 +187,13 @@ export default function PageEditorPage() {
     );
   }
 
+  // Get page slug for context
+  const pageSlug = id ? undefined : undefined; // We don't have slug in this context directly
+  
   return (
     <ElementorEditor
       initialSections={sections}
+      pageId={id}
       pageTitle={pageTitle}
       pageStatus={pageStatus}
       dataSourceFields={dataSourceFields}
