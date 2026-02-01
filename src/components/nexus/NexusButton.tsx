@@ -44,6 +44,21 @@ export interface NexusButtonProps
 const NexusButton = React.forwardRef<HTMLButtonElement, NexusButtonProps>(
   ({ className, variant, size, asChild = false, loading = false, children, disabled, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
+    
+    // When using asChild, Slot requires exactly one child
+    // So we can't render the loader alongside the child
+    if (asChild) {
+      return (
+        <Comp
+          className={cn(nexusButtonVariants({ variant, size, className }))}
+          ref={ref}
+          {...props}
+        >
+          {children}
+        </Comp>
+      );
+    }
+    
     return (
       <Comp
         className={cn(nexusButtonVariants({ variant, size, className }))}

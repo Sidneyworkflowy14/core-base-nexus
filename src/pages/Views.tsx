@@ -162,14 +162,14 @@ export default function ViewsPage() {
                 <div className="space-y-2">
                   <Label>Data Source (opcional)</Label>
                   <Select
-                    value={newPage.data_source_id}
-                    onValueChange={(v) => setNewPage({ ...newPage, data_source_id: v })}
+                    value={newPage.data_source_id || "__none__"}
+                    onValueChange={(v) => setNewPage({ ...newPage, data_source_id: v === "__none__" ? "" : v })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione um data source" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Nenhum</SelectItem>
+                      <SelectItem value="__none__">Nenhum</SelectItem>
                       {dataSources.map((ds) => (
                         <SelectItem key={ds.id} value={ds.id}>
                           {ds.name} ({ds.type})
