@@ -5,8 +5,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { NexusTabs, NexusTabsList, NexusTabsTrigger, NexusTabsContent } from '@/components/nexus';
-import { Settings2, Palette, Database } from 'lucide-react';
+import { Settings2, Palette } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { DataUrlConfig } from './DataUrlConfig';
 
 interface SelectedElement {
   type: 'section' | 'column' | 'widget';
@@ -449,13 +450,24 @@ function WidgetProperties({
               onChange={(e) => onUpdate({ title: e.target.value })}
             />
           </div>
-          <div className="space-y-2">
-            <Label>Valor</Label>
-            <Input
-              value={settings.value || ''}
-              onChange={(e) => onUpdate({ value: e.target.value })}
-            />
-          </div>
+          
+          <DataUrlConfig
+            dataUrl={settings.dataUrl}
+            dataUrlFields={settings.dataUrlFields}
+            selectedValueField={settings.selectedValueField}
+            onUpdate={onUpdate}
+          />
+          
+          {!settings.dataUrl && (
+            <div className="space-y-2">
+              <Label>Valor Manual</Label>
+              <Input
+                value={settings.value || ''}
+                onChange={(e) => onUpdate({ value: e.target.value })}
+              />
+            </div>
+          )}
+          
           <div className="space-y-2">
             <Label>Formato</Label>
             <Select 
@@ -517,6 +529,41 @@ function WidgetProperties({
               </SelectContent>
             </Select>
           </div>
+          
+          <DataUrlConfig
+            dataUrl={settings.dataUrl}
+            dataUrlFields={settings.dataUrlFields}
+            selectedValueField={settings.selectedValueField}
+            selectedLabelField={settings.selectedLabelField}
+            showLabelField={true}
+            onUpdate={onUpdate}
+          />
+        </>
+      );
+    
+    case 'table':
+      return (
+        <>
+          <div className="space-y-2">
+            <Label>Título</Label>
+            <Input
+              value={settings.title || ''}
+              onChange={(e) => onUpdate({ title: e.target.value })}
+            />
+          </div>
+          
+          <DataUrlConfig
+            dataUrl={settings.dataUrl}
+            dataUrlFields={settings.dataUrlFields}
+            selectedValueField={settings.selectedValueField}
+            onUpdate={onUpdate}
+          />
+          
+          {settings.dataUrlFields && settings.dataUrlFields.length > 0 && (
+            <div className="text-xs text-muted-foreground">
+              As colunas serão geradas automaticamente dos campos da URL.
+            </div>
+          )}
         </>
       );
 

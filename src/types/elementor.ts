@@ -98,6 +98,12 @@ export interface WidgetSettings {
   labelField?: string;
   valueField?: string;
   chartData?: { label: string; value: number }[];
+  
+  // Data URL binding (for KPI, Chart, Table)
+  dataUrl?: string;
+  dataUrlFields?: string[];  // Fields available from the URL response
+  selectedValueField?: string;  // Which field to use for value
+  selectedLabelField?: string;  // Which field to use for label (charts)
 }
 
 export interface Section {
