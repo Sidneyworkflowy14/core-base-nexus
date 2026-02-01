@@ -4,6 +4,7 @@ import { useAuditLog } from '@/hooks/useAuditLog';
 import { useAuditLogs } from '@/hooks/useAuditLogs';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/AppLayout';
+import { TenantDetailsModal } from '@/components/superadmin/TenantDetailsModal';
 import { 
   NexusButton, 
   NexusCard, 
@@ -27,7 +28,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tenant } from '@/types/auth';
-import { Building2, Users, FileText, Activity, Shield, Sparkles } from 'lucide-react';
+import { Building2, Users, FileText, Activity, Shield, Sparkles, Eye } from 'lucide-react';
 
 export default function SuperAdminPage() {
   const { isSuperAdmin } = useRoles();
@@ -48,6 +49,10 @@ export default function SuperAdminPage() {
   }>({ tenants: 0, users: 0, pages: 0 });
 
   const [selectedTenantForLogs, setSelectedTenantForLogs] = useState<string>('');
+  
+  // Modal state
+  const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
 
   const fetchTenants = async () => {
     setLoading(true);
@@ -156,6 +161,16 @@ export default function SuperAdminPage() {
     } catch (err) {
       console.error('Error updating tenant:', err);
     }
+  };
+
+  const handleOpenDetails = (tenant: Tenant) => {
+    setSelectedTenant(tenant);
+    setDetailsModalOpen(true);
+  };
+
+  const handleCloseDetails = () => {
+    setDetailsModalOpen(false);
+    setSelectedTenant(null);
   };
 
   if (!isSuperAdmin) {
@@ -293,7 +308,11 @@ export default function SuperAdminPage() {
                     </NexusTableHeader>
                     <NexusTableBody>
                       {tenants.map((tenant) => (
-                        <NexusTableRow key={tenant.id}>
+                        <NexusTableRow 
+                          key={tenant.id} 
+                          className="cursor-pointer hover:bg-accent/50"
+                          onClick={() => handleOpenDetails(tenant)}
+                        >
                           <NexusTableCell className="font-medium">{tenant.name}</NexusTableCell>
                           <NexusTableCell>
                             <NexusBadge
@@ -309,7 +328,15 @@ export default function SuperAdminPage() {
                             {new Date(tenant.created_at).toLocaleDateString('pt-BR')}
                           </NexusTableCell>
                           <NexusTableCell>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                              <NexusButton
+                                variant="ghost"
+                                size="icon-sm"
+                                onClick={() => handleOpenDetails(tenant)}
+                                title="Ver detalhes"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </NexusButton>
                               {tenant.status === 'active' ? (
                                 <NexusButton
                                   variant="outline"
@@ -407,6 +434,17 @@ export default function SuperAdminPage() {
             </NexusCard>
           </NexusTabsContent>
         </NexusTabs>
+
+        {/* Tenant Details Modal */}
+        <TenantDetailsModal
+          tenant={selectedTenant}
+          open={detailsModalOpen}
+          onClose={handleCloseDetails}
+          onTenantUpdated={() => {
+            fetchTenants();
+            fetchStats();
+          }}
+        />
       </div>
     </AppLayout>
   );
