@@ -35,6 +35,7 @@ export type WidgetType =
   | 'divider'
   | 'icon'
   | 'video'
+  | 'iframe'
   | 'html'
   | 'table'
   | 'kpi'
@@ -136,6 +137,12 @@ export interface WidgetSettings {
   videoUrl?: string;
   autoplay?: boolean;
   controls?: boolean;
+
+  // Iframe
+  iframeUrl?: string;
+  iframeHtml?: string;
+  iframeHeight?: number;
+  iframeUseUiKit?: boolean;
   
   // Table
   title?: string;
@@ -217,6 +224,7 @@ export const WIDGET_CATEGORIES = [
     name: 'Avançado',
     widgets: [
       { type: 'html' as WidgetType, label: 'HTML', icon: 'code' },
+      { type: 'iframe' as WidgetType, label: 'Iframe (UI Kit)', icon: 'panel-top' },
       { type: 'icon' as WidgetType, label: 'Ícone', icon: 'star' },
       { type: 'video' as WidgetType, label: 'Vídeo', icon: 'play' },
     ],
@@ -271,6 +279,12 @@ export function createWidget(widgetType: WidgetType): Widget {
     divider: { dividerStyle: 'solid', width: 'full' },
     icon: { icon: 'star', iconSize: 48 },
     video: { videoUrl: '', autoplay: false, controls: true },
+    iframe: {
+      iframeUrl: '',
+      iframeHtml: '<div class="p-6">Conteúdo do iframe</div>',
+      iframeHeight: 600,
+      iframeUseUiKit: true,
+    },
     html: { 
       html: '<div class="custom">Conteúdo customizado</div>',
       css: '.custom { padding: 1rem; }',

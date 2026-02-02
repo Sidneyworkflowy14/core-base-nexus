@@ -442,6 +442,48 @@ function WidgetProperties({
         </>
       );
 
+    case 'iframe':
+      return (
+        <>
+          <div className="space-y-2">
+            <Label>URL do Iframe (opcional)</Label>
+            <Input
+              value={settings.iframeUrl || ''}
+              onChange={(e) => onUpdate({ iframeUrl: e.target.value })}
+              placeholder="https://..."
+            />
+            <p className="text-xs text-muted-foreground">
+              Para importar o UI Kit automaticamente, use HTML abaixo (iframe srcdoc).
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label>HTML do Iframe</Label>
+            <Textarea
+              value={settings.iframeHtml || ''}
+              onChange={(e) => onUpdate({ iframeHtml: e.target.value })}
+              rows={8}
+              className="font-mono text-xs"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Altura (px)</Label>
+            <Input
+              type="number"
+              value={settings.iframeHeight ?? 600}
+              onChange={(e) => onUpdate({ iframeHeight: Number(e.target.value) || 0 })}
+              min={0}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <Label>Importar UI Kit automaticamente</Label>
+            <Switch
+              checked={settings.iframeUseUiKit ?? true}
+              onCheckedChange={(v) => onUpdate({ iframeUseUiKit: v })}
+            />
+          </div>
+        </>
+      );
+
     case 'kpi':
       return (
         <>

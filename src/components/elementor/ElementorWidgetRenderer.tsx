@@ -176,6 +176,75 @@ export function ElementorWidgetRenderer({ widget, previewData }: ElementorWidget
         </div>
       );
 
+    case 'iframe': {
+      const height = settings.iframeHeight ?? 600;
+      const hasHtml = Boolean(settings.iframeHtml?.trim());
+      const useUiKit = settings.iframeUseUiKit ?? true;
+      const iframeUrl = settings.iframeUrl?.trim();
+
+      const buildUiKitHead = () => {
+        if (typeof document === 'undefined') return '';
+        const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+          .map((node) => node.getAttribute('href'))
+          .filter(Boolean)
+          .map((href) => `<link rel="stylesheet" href="${href}" />`)
+          .join('\n');
+        const inlineStyles = Array.from(document.querySelectorAll('style'))
+          .map((node) => node.textContent || '')
+          .filter(Boolean)
+          .join('\n');
+        const inlineBlock = inlineStyles ? `<style>${inlineStyles}</style>` : '';
+        return `${styles}\n${inlineBlock}`;
+      };
+
+      const srcDoc = hasHtml
+        ? `<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    ${useUiKit ? buildUiKitHead() : ''}
+    <style>body{margin:0;}</style>
+  </head>
+  <body>${settings.iframeHtml || ''}</body>
+</html>`
+        : '';
+
+      if (useUiKit && !hasHtml) {
+        return (
+          <div
+            className={cn("rounded-lg border border-dashed border-muted-foreground/30 p-4 text-sm text-muted-foreground", customClasses)}
+            style={customStyles}
+          >
+            Para importar o UI Kit automaticamente, informe o HTML do iframe.
+          </div>
+        );
+      }
+
+      if (!iframeUrl && !hasHtml) {
+        return (
+          <div
+            className={cn("rounded-lg border border-dashed border-muted-foreground/30 p-4 text-sm text-muted-foreground", customClasses)}
+            style={customStyles}
+          >
+            Defina uma URL ou HTML para exibir o iframe.
+          </div>
+        );
+      }
+
+      return (
+        <div className={cn("rounded-lg overflow-hidden", customClasses)} style={customStyles}>
+          <iframe
+            title="iframe-widget"
+            src={hasHtml ? undefined : iframeUrl}
+            srcDoc={hasHtml ? srcDoc : undefined}
+            className="w-full"
+            style={{ height }}
+          />
+        </div>
+      );
+    }
+
     case 'html':
       return (
         <div 
