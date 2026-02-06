@@ -111,4 +111,5 @@ export function DynamicIcon({ name, className }: DynamicIconProps) {
   return <IconComponent className={className} />;
 }
 
+export const iconNames = Object.keys(iconMap).sort();
 export { iconMap };

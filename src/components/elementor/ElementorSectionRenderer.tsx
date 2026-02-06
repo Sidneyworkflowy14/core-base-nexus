@@ -17,6 +17,8 @@ interface SelectedElement {
   sectionId: string;
   columnId?: string;
   widgetId?: string;
+  containerWidgetId?: string;
+  innerColumnId?: string;
 }
 
 interface ElementorSectionRendererProps {
@@ -32,6 +34,28 @@ interface ElementorSectionRendererProps {
   onMoveWidget: (sectionId: string, columnId: string, widgetId: string, direction: 'up' | 'down') => void;
   onDuplicateWidget: (sectionId: string, columnId: string, widgetId: string) => void;
   onDrop: (e: React.DragEvent, sectionId: string, columnId: string) => void;
+  onUpdateWidgetSettings: (sectionId: string, columnId: string, widgetId: string, settings: Partial<Widget['settings']>) => void;
+  onAddSubWidget: (sectionId: string, columnId: string, containerWidgetId: string, innerColumnId: string, widgetType: WidgetType) => void;
+  onDeleteSubWidget: (sectionId: string, columnId: string, containerWidgetId: string, innerColumnId: string, widgetId: string) => void;
+  onMoveSubWidget: (sectionId: string, columnId: string, containerWidgetId: string, innerColumnId: string, widgetId: string, direction: 'up' | 'down') => void;
+  onDuplicateSubWidget: (sectionId: string, columnId: string, containerWidgetId: string, innerColumnId: string, widgetId: string) => void;
+  onMoveSubWidgetTo: (
+    sectionId: string,
+    columnId: string,
+    containerWidgetId: string,
+    fromInnerColumnId: string,
+    widgetId: string,
+    toInnerColumnId: string
+  ) => void;
+  onMoveWidgetToSubsection: (
+    fromSectionId: string,
+    fromColumnId: string,
+    widgetId: string,
+    toSectionId: string,
+    toColumnId: string,
+    containerWidgetId: string,
+    innerColumnId: string
+  ) => void;
 }
 
 export function ElementorSectionRenderer({
@@ -47,6 +71,13 @@ export function ElementorSectionRenderer({
   onMoveWidget,
   onDuplicateWidget,
   onDrop,
+  onUpdateWidgetSettings,
+  onAddSubWidget,
+  onDeleteSubWidget,
+  onMoveSubWidget,
+  onDuplicateSubWidget,
+  onMoveSubWidgetTo,
+  onMoveWidgetToSubsection,
 }: ElementorSectionRendererProps) {
   const isSectionSelected = selectedElement?.type === 'section' && selectedElement?.sectionId === section.id;
   
@@ -67,7 +98,7 @@ export function ElementorSectionRenderer({
   return (
     <div
       className={cn(
-        "relative group border-2 rounded-lg transition-all",
+        "relative group border-2 rounded-lg transition-all bg-card/60",
         isSectionSelected 
           ? "border-primary bg-primary/5" 
           : "border-dashed border-border hover:border-primary/50"
@@ -127,23 +158,25 @@ export function ElementorSectionRenderer({
             lg: 'p-6',
           }[column.settings.padding];
 
-          const alignClass = {
-            start: 'justify-start',
-            center: 'justify-center',
-            end: 'justify-end',
-          }[column.settings.verticalAlign];
+                  const alignClass = {
+                    start: 'justify-start',
+                    center: 'justify-center',
+                    end: 'justify-end',
+                  }[column.settings.verticalAlign];
+                  const fullHeightClass = column.settings.fullHeight ? 'min-h-screen' : '';
 
-          return (
-            <div
-              key={column.id}
-              className={cn(
-                "relative min-h-[80px] border rounded-md transition-all flex flex-col",
-                alignClass,
-                columnPaddingClass,
-                isColumnSelected
-                  ? "border-primary bg-primary/5"
-                  : "border-dashed border-muted-foreground/30 hover:border-primary/50 hover:bg-muted/20"
-              )}
+                  return (
+                    <div
+                      key={column.id}
+                      className={cn(
+                        "relative min-h-[80px] border rounded-md transition-all flex flex-col bg-transparent",
+                        alignClass,
+                        columnPaddingClass,
+                        fullHeightClass,
+                        isColumnSelected
+                          ? "border-primary bg-primary/5"
+                          : "border-dashed border-muted-foreground/30 hover:border-primary/50 hover:bg-muted/20"
+                      )}
               style={{ flex: column.settings.width }}
               onClick={(e) => {
                 e.stopPropagation();
@@ -163,12 +196,254 @@ export function ElementorSectionRenderer({
               )}
 
               {/* Widgets */}
-              <div className="space-y-2 w-full relative z-10">
+              <div
+                className={cn(
+                  "w-full relative z-10",
+                  (column.settings.flow || 'stack') === 'row'
+                    ? "flex flex-wrap gap-2"
+                    : "flex flex-col gap-2"
+                )}
+              >
                 {column.children.map((widget, widgetIndex) => {
                   const isWidgetSelected = selectedElement?.type === 'widget' &&
                     selectedElement?.sectionId === section.id &&
                     selectedElement?.columnId === column.id &&
-                    selectedElement?.widgetId === widget.id;
+                    selectedElement?.widgetId === widget.id &&
+                    !selectedElement?.containerWidgetId;
+
+                  if (widget.widgetType === 'subsection') {
+                    const subColumns = widget.settings.subsectionColumns || [];
+                    const subGapClass = {
+                      none: 'gap-0',
+                      sm: 'gap-2',
+                      md: 'gap-4',
+                      lg: 'gap-6',
+                    }[widget.settings.subsectionGap || 'md'];
+                    const subPaddingClass = {
+                      none: 'p-0',
+                      sm: 'p-2',
+                      md: 'p-4',
+                      lg: 'p-6',
+                    }[widget.settings.subsectionPadding || 'sm'];
+
+                    const useCard = widget.settings.subsectionUseCard ?? false;
+                    return (
+                      <div
+                        key={widget.id}
+                        className={cn(
+                          "relative group/widget rounded-md transition-all border border-dashed",
+                          useCard ? "border-border bg-card/60" : "border-border/40 bg-transparent",
+                          isWidgetSelected
+                            ? "ring-2 ring-primary ring-offset-2"
+                            : "hover:ring-1 hover:ring-primary/50"
+                        )}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectElement({
+                            type: 'widget',
+                            sectionId: section.id,
+                            columnId: column.id,
+                            widgetId: widget.id,
+                          });
+                        }}
+                      >
+                        <div className={cn("flex", subGapClass, subPaddingClass)}>
+                          {subColumns.map((subCol) => {
+                            const isSubColumnSelected =
+                              selectedElement?.type === 'column' &&
+                              selectedElement?.sectionId === section.id &&
+                              selectedElement?.columnId === column.id &&
+                              selectedElement?.containerWidgetId === widget.id &&
+                              selectedElement?.innerColumnId === subCol.id;
+
+                            return (
+                              <div
+                                key={subCol.id}
+                                className={cn(
+                                  "relative min-h-[60px] border rounded-md transition-all flex flex-col",
+                                  isSubColumnSelected
+                                    ? "border-primary bg-primary/5"
+                                    : "border-dashed border-muted-foreground/30 hover:border-primary/50 hover:bg-muted/20"
+                                )}
+                                style={{ flex: subCol.settings.width }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onSelectElement({
+                                    type: 'column',
+                                    sectionId: section.id,
+                                    columnId: column.id,
+                                    containerWidgetId: widget.id,
+                                    innerColumnId: subCol.id,
+                                  });
+                                }}
+                                onDragOver={(e) => e.preventDefault()}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const subMove = e.dataTransfer.getData('subWidgetMove');
+                                if (subMove) {
+                                    try {
+                                      const payload = JSON.parse(subMove) as {
+                                        sectionId: string;
+                                        columnId: string;
+                                        containerWidgetId: string;
+                                        innerColumnId: string;
+                                        widgetId: string;
+                                      };
+                                      if (payload?.containerWidgetId === widget.id) {
+                                        onMoveSubWidgetTo(
+                                          section.id,
+                                          column.id,
+                                          widget.id,
+                                          payload.innerColumnId,
+                                          payload.widgetId,
+                                          subCol.id
+                                        );
+                                        return;
+                                      }
+                                    } catch {
+                                      // ignore
+                                    }
+                                  }
+                                  const widgetMove = e.dataTransfer.getData('widgetMove');
+                                  if (widgetMove) {
+                                    try {
+                                      const payload = JSON.parse(widgetMove) as {
+                                        sectionId: string;
+                                        columnId: string;
+                                        widgetId: string;
+                                      };
+                                      if (payload?.sectionId && payload?.columnId && payload?.widgetId) {
+                                        onMoveWidgetToSubsection(
+                                          payload.sectionId,
+                                          payload.columnId,
+                                          payload.widgetId,
+                                          section.id,
+                                          column.id,
+                                          widget.id,
+                                          subCol.id
+                                        );
+                                        return;
+                                      }
+                                    } catch {
+                                      // ignore
+                                    }
+                                  }
+                                  const widgetType = e.dataTransfer.getData('widgetType') as WidgetType;
+                                  if (widgetType) {
+                                    onAddSubWidget(section.id, column.id, widget.id, subCol.id, widgetType);
+                                  }
+                                }}
+                              >
+                                {subCol.children.length === 0 && (
+                                  <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/50">
+                                    <div className="text-center">
+                                      <Plus className="h-5 w-5 mx-auto mb-1" />
+                                      <span className="text-[10px]">Arraste um widget</span>
+                                    </div>
+                                  </div>
+                                )}
+                                <div
+                                  className={cn(
+                                    "w-full relative z-10",
+                                    (subCol.settings.flow || 'stack') === 'row'
+                                      ? "flex flex-wrap gap-2"
+                                      : "flex flex-col gap-2"
+                                  )}
+                                >
+                                  {subCol.children.map((subWidget, subWidgetIndex) => {
+                                    const isSubWidgetSelected = selectedElement?.type === 'widget' &&
+                                      selectedElement?.sectionId === section.id &&
+                                      selectedElement?.columnId === column.id &&
+                                      selectedElement?.containerWidgetId === widget.id &&
+                                      selectedElement?.innerColumnId === subCol.id &&
+                                      selectedElement?.widgetId === subWidget.id;
+
+                                    return (
+                                      <div
+                                        key={subWidget.id}
+                                        className={cn(
+                                          "relative group/widget rounded-md transition-all",
+                                          isSubWidgetSelected
+                                            ? "ring-2 ring-primary ring-offset-2"
+                                            : "hover:ring-1 hover:ring-primary/50"
+                                        )}
+                                        draggable
+                                        onDragStart={(e) => {
+                                          e.stopPropagation();
+                                          e.dataTransfer.setData('subWidgetMove', JSON.stringify({
+                                            sectionId: section.id,
+                                            columnId: column.id,
+                                            containerWidgetId: widget.id,
+                                            innerColumnId: subCol.id,
+                                            widgetId: subWidget.id,
+                                          }));
+                                          e.dataTransfer.effectAllowed = 'move';
+                                        }}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onSelectElement({
+                                            type: 'widget',
+                                            sectionId: section.id,
+                                            columnId: column.id,
+                                            containerWidgetId: widget.id,
+                                            innerColumnId: subCol.id,
+                                            widgetId: subWidget.id,
+                                          });
+                                        }}
+                                      >
+                                        <div className={cn(
+                                          "absolute -top-2 right-1 flex items-center gap-0.5 bg-card border border-border rounded-md px-0.5 py-0.5 z-20",
+                                          "opacity-0 group-hover/widget:opacity-100 transition-opacity",
+                                          isSubWidgetSelected && "opacity-100"
+                                        )}>
+                                          <NexusButton
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-5 w-5"
+                                            onClick={(e) => { e.stopPropagation(); onMoveSubWidget(section.id, column.id, widget.id, subCol.id, subWidget.id, 'up'); }}
+                                            disabled={subWidgetIndex === 0}
+                                          >
+                                            <ArrowUp className="h-3 w-3" />
+                                          </NexusButton>
+                                          <NexusButton
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-5 w-5"
+                                            onClick={(e) => { e.stopPropagation(); onMoveSubWidget(section.id, column.id, widget.id, subCol.id, subWidget.id, 'down'); }}
+                                            disabled={subWidgetIndex === subCol.children.length - 1}
+                                          >
+                                            <ArrowDown className="h-3 w-3" />
+                                          </NexusButton>
+                                          <NexusButton
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-5 w-5"
+                                            onClick={(e) => { e.stopPropagation(); onDuplicateSubWidget(section.id, column.id, widget.id, subCol.id, subWidget.id); }}
+                                          >
+                                            <Copy className="h-3 w-3" />
+                                          </NexusButton>
+                                          <NexusButton
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-5 w-5 text-destructive"
+                                            onClick={(e) => { e.stopPropagation(); onDeleteSubWidget(section.id, column.id, widget.id, subCol.id, subWidget.id); }}
+                                          >
+                                            <Trash className="h-3 w-3" />
+                                          </NexusButton>
+                                        </div>
+                                        <ElementorWidgetRenderer widget={subWidget} previewData={previewData} interactive={false} />
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  }
 
                   return (
                     <div
@@ -179,6 +454,16 @@ export function ElementorSectionRenderer({
                           ? "ring-2 ring-primary ring-offset-2"
                           : "hover:ring-1 hover:ring-primary/50"
                       )}
+                      draggable
+                      onDragStart={(e) => {
+                        e.stopPropagation();
+                        e.dataTransfer.setData('widgetMove', JSON.stringify({
+                          sectionId: section.id,
+                          columnId: column.id,
+                          widgetId: widget.id,
+                        }));
+                        e.dataTransfer.effectAllowed = 'move';
+                      }}
                       onClick={(e) => {
                         e.stopPropagation();
                         onSelectElement({
@@ -231,7 +516,7 @@ export function ElementorSectionRenderer({
                         </NexusButton>
                       </div>
 
-                      <ElementorWidgetRenderer widget={widget} previewData={previewData} />
+                      <ElementorWidgetRenderer widget={widget} previewData={previewData} interactive={false} />
                     </div>
                   );
                 })}

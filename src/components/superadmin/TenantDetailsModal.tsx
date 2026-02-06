@@ -45,7 +45,7 @@ interface TenantDetailsModalProps {
   tenant: Tenant | null;
   open: boolean;
   onClose: () => void;
-  onTenantUpdated?: () => void;
+  onTenantUpdated?: (tenant?: Tenant) => void;
 }
 
 export function TenantDetailsModal({ tenant, open, onClose, onTenantUpdated }: TenantDetailsModalProps) {
@@ -55,6 +55,8 @@ export function TenantDetailsModal({ tenant, open, onClose, onTenantUpdated }: T
   const [loading, setLoading] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState('');
+  const [editingSlug, setEditingSlug] = useState(false);
+  const [newSlug, setNewSlug] = useState('');
   
   // Add member state
   const [addingMember, setAddingMember] = useState(false);
@@ -66,6 +68,7 @@ export function TenantDetailsModal({ tenant, open, onClose, onTenantUpdated }: T
   useEffect(() => {
     if (tenant && open) {
       setNewName(tenant.name);
+      setNewSlug(tenant.slug || '');
       fetchMembers();
       fetchAllUsers();
     }
@@ -131,10 +134,12 @@ export function TenantDetailsModal({ tenant, open, onClose, onTenantUpdated }: T
 
     setSubmitting(true);
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('tenants')
         .update({ name: newName.trim() })
-        .eq('id', tenant.id);
+        .eq('id', tenant.id)
+        .select('*')
+        .single();
 
       if (error) throw error;
 
@@ -146,11 +151,67 @@ export function TenantDetailsModal({ tenant, open, onClose, onTenantUpdated }: T
       });
 
       toast.success('Nome atualizado');
+      if (data) {
+        onTenantUpdated?.(data as Tenant);
+      } else {
+        onTenantUpdated?.();
+      }
       setEditingName(false);
-      onTenantUpdated?.();
     } catch (err) {
       console.error('Error updating tenant name:', err);
       toast.error('Erro ao atualizar nome');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const slugify = (value: string) => {
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+  };
+
+  const handleUpdateSlug = async () => {
+    if (!tenant || !newSlug.trim()) return;
+
+    const cleaned = slugify(newSlug);
+    if (!cleaned) {
+      toast.error('Slug inválido');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const { data, error } = await supabase
+        .from('tenants')
+        .update({ slug: cleaned })
+        .eq('id', tenant.id)
+        .select('*')
+        .single();
+
+      if (error) throw error;
+
+      await log({
+        action: 'tenant_slug_updated',
+        entity: 'tenant',
+        entity_id: tenant.id,
+        metadata: { old_slug: tenant.slug, new_slug: cleaned },
+      });
+
+      toast.success('Slug atualizado');
+      if (data) {
+        onTenantUpdated?.(data as Tenant);
+      } else {
+        onTenantUpdated?.();
+      }
+      setEditingSlug(false);
+    } catch (err: any) {
+      console.error('Error updating tenant slug:', err);
+      toast.error('Erro ao atualizar slug');
     } finally {
       setSubmitting(false);
     }
@@ -326,6 +387,35 @@ export function TenantDetailsModal({ tenant, open, onClose, onTenantUpdated }: T
                 <NexusBadge variant={tenant.status === 'active' ? 'success' : 'destructive'}>
                   {tenant.status}
                 </NexusBadge>
+              </div>
+
+              <div>
+                <Label className="text-muted-foreground text-xs">Slug (URL)</Label>
+                {editingSlug ? (
+                  <div className="flex items-center gap-2 mt-1">
+                    <NexusInput
+                      value={newSlug}
+                      onChange={(e) => setNewSlug(e.target.value)}
+                      className="w-48"
+                    />
+                    <NexusButton size="sm" onClick={handleUpdateSlug} loading={submitting}>
+                      Salvar
+                    </NexusButton>
+                    <NexusButton size="sm" variant="ghost" onClick={() => { setEditingSlug(false); setNewSlug(tenant.slug || ''); }}>
+                      Cancelar
+                    </NexusButton>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <p className="font-mono text-xs">{tenant.slug || '-'}</p>
+                    <NexusButton size="icon-sm" variant="ghost" onClick={() => setEditingSlug(true)}>
+                      <Edit className="h-3 w-3" />
+                    </NexusButton>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">
+                  Ex: iservice-solucoes
+                </p>
               </div>
               
               <div className="grid grid-cols-2 gap-4 text-sm">

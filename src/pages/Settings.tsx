@@ -4,6 +4,7 @@ import { useTenant } from '@/contexts/TenantContext';
 import { useNavItems } from '@/hooks/useNavItems';
 import { usePages } from '@/hooks/usePages';
 import { AppLayout } from '@/components/AppLayout';
+import { useOrgPath } from '@/hooks/useOrgPath';
 import { 
   NexusButton, 
   NexusCard, 
@@ -30,6 +31,7 @@ export default function SettingsPage() {
   const { currentTenant } = useTenant();
   const { navItems, loading, createNavItem, updateNavItem, deleteNavItem, reorderNavItems } = useNavItems();
   const { pages } = usePages();
+  const { withOrg } = useOrgPath();
 
   const [newItem, setNewItem] = useState({
     title: '',
@@ -124,7 +126,7 @@ export default function SettingsPage() {
           </NexusCardHeader>
           <NexusCardContent>
             <NexusButton asChild>
-              <Link to="/settings/brand">
+              <Link to={withOrg('/settings/brand')}>
                 <Palette className="h-4 w-4 mr-2" />
                 Abrir Brand Settings
               </Link>
@@ -188,7 +190,7 @@ export default function SettingsPage() {
             </form>
             {pages.length > 0 && (
               <p className="mt-2 text-xs text-muted-foreground">
-                Pages disponíveis: {pages.map((p) => `/views/${p.slug}`).join(', ')}
+                Pages disponíveis: {pages.map((p) => withOrg(`/views/${p.slug}`)).join(', ')}
               </p>
             )}
           </NexusCardContent>

@@ -6,6 +6,7 @@ import { useDataSources } from '@/hooks/useDataSources';
 import { ElementorEditor } from '@/components/elementor';
 import { Section, ElementorSchema } from '@/types/elementor';
 import { toast } from 'sonner';
+import { useOrgPath } from '@/hooks/useOrgPath';
 
 export default function PageEditorPage() {
   const { id } = useParams<{ id: string }>();
@@ -13,6 +14,7 @@ export default function PageEditorPage() {
   const { currentTenant } = useTenant();
   const { getPageById, updatePage, publishPage } = usePages();
   const { testDataSource, getDataSourceById } = useDataSources();
+  const { withOrg } = useOrgPath();
 
   const [pageTitle, setPageTitle] = useState('');
   const [pageStatus, setPageStatus] = useState<'draft' | 'published'>('draft');
@@ -178,7 +180,7 @@ export default function PageEditorPage() {
       <div className="h-screen flex flex-col items-center justify-center gap-4">
         <p className="text-destructive">{error}</p>
         <button 
-          onClick={() => navigate('/views')}
+          onClick={() => navigate(withOrg('/views'))}
           className="text-primary hover:underline"
         >
           Voltar para Views
@@ -200,7 +202,7 @@ export default function PageEditorPage() {
       previewData={previewData}
       onSave={handleSave}
       onPublish={handlePublish}
-      onBack={() => navigate('/views')}
+      onBack={() => navigate(withOrg('/views'))}
       onTestData={handleTestData}
       hasDataSource={!!dataSourceId}
     />

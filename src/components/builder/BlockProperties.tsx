@@ -139,14 +139,18 @@ function TableProperties({ block, onUpdate, dataSourceFields }: { block: TableBl
         </div>
         {block.props.dataBinding?.enabled && dataSourceFields.length > 0 && (
           <Select
-            value={block.props.dataBinding.field || ''}
-            onValueChange={(field) => onUpdate({ dataBinding: { ...block.props.dataBinding, field } })}
+            value={block.props.dataBinding.field || '__root__'}
+            onValueChange={(field) =>
+              onUpdate({
+                dataBinding: { ...block.props.dataBinding, field: field === '__root__' ? '' : field },
+              })
+            }
           >
             <SelectTrigger>
               <SelectValue placeholder="Campo do data source" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Root (array principal)</SelectItem>
+              <SelectItem value="__root__">Root (array principal)</SelectItem>
               {dataSourceFields.map((f) => (
                 <SelectItem key={f} value={f}>{f}</SelectItem>
               ))}

@@ -83,7 +83,7 @@ export function DataUrlConfig({
         user: { id: 'test-user-id', email: 'test@example.com', name: 'Test User' },
         tenant: { id: 'test-tenant-id', name: 'Test Tenant' },
         widget: { id: 'test-widget-id', type: 'test', title: 'Test Widget' },
-        page: { id: 'test-page-id', slug: 'test-page', title: 'Test Page' },
+        page: { id: 'test-page-id', slug: 'test-page', title: 'Test Page', icon: 'file' },
         meta: {
           timestamp: new Date().toISOString(),
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,

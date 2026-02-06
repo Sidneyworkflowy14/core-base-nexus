@@ -1,12 +1,24 @@
-import { Link, useLocation } from 'react-router-dom';
-import { Shield, Menu, ChevronDown, FileText } from 'lucide-react';
+import { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Shield, Menu, ChevronDown, User, LogOut, Circle } from 'lucide-react';
 import { useRoles } from '@/hooks/useRoles';
 import { useTenant } from '@/contexts/TenantContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useNavItems } from '@/hooks/useNavItems';
 import { useBranding } from '@/hooks/useBranding';
 import { usePages } from '@/hooks/usePages';
 import { DynamicIcon } from './DynamicIcon';
 import { NexusBadge } from '@/components/nexus';
+import { useOrgPath } from '@/hooks/useOrgPath';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from '@/components/ui/dropdown-menu';
+import { Switch } from '@/components/ui/switch';
 import {
   Sidebar,
   SidebarContent,
@@ -24,15 +36,20 @@ import { cn } from '@/lib/utils';
 
 export function AppSidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { state, toggleSidebar } = useSidebar();
   const { currentTenant, userTenants } = useTenant();
+  const { user, signOut } = useAuth();
   const { isTenantAdmin, isSuperAdmin } = useRoles();
   const { visibleNavItems } = useNavItems();
   const { logoUrl } = useBranding();
   const { pages } = usePages();
+  const { orgSlug, withOrg } = useOrgPath();
+  const [availability, setAvailability] = useState<'online' | 'away' | 'offline'>('online');
+  const [autoOffline, setAutoOffline] = useState(true);
 
-  // Get published pages for sidebar
-  const publishedPages = pages.filter((p) => p.status === 'published');
+  // Get published pages for sidebar (exclude subviews)
+  const publishedPages = pages.filter((p) => p.status === 'published' && !p.parent_page_id);
 
   const isActive = (path: string) => location.pathname === path;
   const collapsed = state === 'collapsed';
@@ -57,6 +74,14 @@ export function AppSidebar() {
   const superAdminItems = isSuperAdmin
     ? [{ title: 'Super Admin', route: '/superadmin', icon: 'shield' }]
     : [];
+
+  const toOrgRoute = (route: string) => {
+    if (!orgSlug) return route;
+    if (route.startsWith('http')) return route;
+    if (route.startsWith(`/${orgSlug}/`) || route === `/${orgSlug}`) return route;
+    if (route.startsWith('/')) return `/${orgSlug}${route}`;
+    return `/${orgSlug}/${route}`;
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar">
@@ -126,7 +151,7 @@ export function AppSidebar() {
                       isActive(item.route) && "nexus-menu-item-active"
                     )}
                   >
-                    <Link to={item.route}>
+                    <Link to={toOrgRoute(item.route)}>
                       <DynamicIcon name={item.icon} className="h-5 w-5" />
                       {!collapsed && <span>{item.title}</span>}
                     </Link>
@@ -151,14 +176,14 @@ export function AppSidebar() {
                   <SidebarMenuItem key={page.id}>
                     <SidebarMenuButton
                       asChild
-                      isActive={isActive(`/views/${page.slug}`)}
+                      isActive={isActive(withOrg(`/views/${page.slug}`))}
                       className={cn(
                         "nexus-menu-item",
-                        isActive(`/views/${page.slug}`) && "nexus-menu-item-active"
+                        isActive(withOrg(`/views/${page.slug}`)) && "nexus-menu-item-active"
                       )}
                     >
-                      <Link to={`/views/${page.slug}`}>
-                        <FileText className="h-5 w-5" />
+                      <Link to={withOrg(`/views/${page.slug}`)}>
+                        <DynamicIcon name={page.icon || 'file'} className="h-5 w-5" />
                         {!collapsed && <span>{page.title}</span>}
                       </Link>
                     </SidebarMenuButton>
@@ -183,13 +208,13 @@ export function AppSidebar() {
                   <SidebarMenuItem key={item.id}>
                     <SidebarMenuButton
                       asChild
-                      isActive={isActive(item.route)}
+                      isActive={isActive(toOrgRoute(item.route))}
                       className={cn(
                         "nexus-menu-item",
-                        isActive(item.route) && "nexus-menu-item-active"
+                        isActive(toOrgRoute(item.route)) && "nexus-menu-item-active"
                       )}
                     >
-                      <Link to={item.route}>
+                      <Link to={toOrgRoute(item.route)}>
                         <DynamicIcon name={item.icon} className="h-5 w-5" />
                         {!collapsed && <span>{item.title}</span>}
                       </Link>
@@ -215,13 +240,13 @@ export function AppSidebar() {
                   <SidebarMenuItem key={item.route}>
                     <SidebarMenuButton
                       asChild
-                      isActive={isActive(item.route)}
+                      isActive={isActive(toOrgRoute(item.route))}
                       className={cn(
                         "nexus-menu-item",
-                        isActive(item.route) && "nexus-menu-item-active"
+                        isActive(toOrgRoute(item.route)) && "nexus-menu-item-active"
                       )}
                     >
-                      <Link to={item.route}>
+                      <Link to={toOrgRoute(item.route)}>
                         <DynamicIcon name={item.icon} className="h-5 w-5" />
                         {!collapsed && <span>{item.title}</span>}
                       </Link>
@@ -276,19 +301,65 @@ export function AppSidebar() {
       {/* Footer with workspace pill */}
       <SidebarFooter className="p-4 border-t border-sidebar-border">
         {!collapsed && (
-          <div className="nexus-workspace-pill text-white">
-            <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center">
-              <span className="text-sm font-bold">
-                {currentTenant?.name?.charAt(0).toUpperCase() || 'N'}
-              </span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">
-                {currentTenant?.name || 'Nexus'}
-              </p>
-              <p className="text-xs opacity-80">Multi-Tenant SaaS</p>
-            </div>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" className="nexus-workspace-pill text-white w-full">
+                <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center">
+                  <span className="text-sm font-bold">
+                    {(user?.email?.charAt(0) || 'U').toUpperCase()}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0 text-left">
+                  <p className="text-sm font-medium truncate">
+                    {user?.user_metadata?.full_name ||
+                      user?.user_metadata?.name ||
+                      user?.email?.split('@')[0] ||
+                      'Usuário'}
+                  </p>
+                  <p className="text-xs opacity-80 truncate">
+                    {currentTenant?.name || 'Sem organização'}
+                  </p>
+                </div>
+                <ChevronDown className="h-4 w-4 opacity-80" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64">
+              <DropdownMenuLabel>Disponibilidade</DropdownMenuLabel>
+              <div className="px-2 py-2 space-y-2">
+                {[
+                  { key: 'online', label: 'Online', color: 'text-emerald-500' },
+                  { key: 'away', label: 'Ausente', color: 'text-yellow-500' },
+                  { key: 'offline', label: 'Offline', color: 'text-muted-foreground' },
+                ].map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    className="w-full flex items-center justify-between rounded-md px-2 py-2 text-sm hover:bg-muted"
+                    onClick={() => setAvailability(item.key as typeof availability)}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Circle className={`h-2.5 w-2.5 ${item.color}`} />
+                      {item.label}
+                    </span>
+                    {availability === item.key && <span className="text-xs">Selecionado</span>}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center justify-between px-4 py-2">
+                <span className="text-xs text-muted-foreground">Marcar offline automaticamente</span>
+                <Switch checked={autoOffline} onCheckedChange={setAutoOffline} />
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate(withOrg('/profile'))}>
+                <User className="h-4 w-4 mr-2" />
+                Editar perfil
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={signOut}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Encerrar sessão
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </SidebarFooter>
     </Sidebar>

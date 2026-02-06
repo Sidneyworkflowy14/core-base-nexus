@@ -5,6 +5,7 @@ export type AppRole = 'superadmin' | 'tenant_admin' | 'tenant_user';
 export interface Tenant {
   id: string;
   name: string;
+  slug: string;
   status: 'active' | 'inactive' | 'suspended';
   created_at: string;
 }
@@ -24,6 +25,8 @@ export interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
+  resetPassword: (email: string) => Promise<{ error: Error | null }>;
+  updateProfile: (data: { full_name?: string; name?: string; avatar_url?: string }) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 

@@ -82,15 +82,40 @@ export default function UsersPage() {
     setSuccess(null);
 
     try {
-      setSuccess(`Para adicionar ${inviteEmail}, o usuário precisa criar uma conta primeiro. Use uma edge function para enviar convites.`);
-      await log({
-        action: 'invite_attempted',
-        entity: 'membership',
-        metadata: { email: inviteEmail, role: inviteRole },
+      const { data, error } = await supabase.functions.invoke('invite-user', {
+        body: {
+          email: inviteEmail,
+          role: inviteRole,
+          tenantId: currentTenant.id,
+          redirectTo: `${window.location.origin}/auth`,
+        },
       });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.status === 'added_existing') {
+        setSuccess(`Usuário ${inviteEmail} já tinha conta e foi adicionado à organização.`);
+      } else {
+        setSuccess(`Convite enviado para ${inviteEmail}.`);
+      }
+
+      await log({
+        action: 'invite_sent',
+        entity: 'membership',
+        metadata: { email: inviteEmail, role: inviteRole, result: data?.status },
+      });
+
       setInviteEmail('');
+      await fetchMembers();
+      await refetchTenants();
     } catch (err) {
-      setError('Erro ao enviar convite.');
+      const message =
+        err && typeof err === 'object' && 'message' in err
+          ? String((err as { message?: string }).message)
+          : 'Erro ao enviar convite.';
+      setError(message);
     } finally {
       setInviting(false);
     }

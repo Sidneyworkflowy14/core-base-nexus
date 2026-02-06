@@ -5,6 +5,7 @@ import { usePages } from '@/hooks/usePages';
 import { useDataSources } from '@/hooks/useDataSources';
 import { useRoles } from '@/hooks/useRoles';
 import { AppLayout } from '@/components/AppLayout';
+import { useOrgPath } from '@/hooks/useOrgPath';
 import { BlockRenderer } from '@/components/builder/BlockRenderer';
 import { ElementorPageRenderer } from '@/components/elementor/ElementorPageRenderer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,11 +21,13 @@ export default function ViewPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { currentTenant } = useTenant();
-  const { getPageBySlug } = usePages();
+  const { getPageBySlug, getPageById } = usePages();
   const { getDataSourceById, testDataSource } = useDataSources();
   const { isTenantAdmin } = useRoles();
+  const { withOrg } = useOrgPath();
 
   const [page, setPage] = useState<Page | null>(null);
+  const [parentSlug, setParentSlug] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [data, setData] = useState<unknown>(null);
@@ -43,6 +46,12 @@ export default function ViewPage() {
     if (foundPage) {
       setPage(foundPage);
       setNotFound(false);
+      if (foundPage.parent_page_id) {
+        const parent = await getPageById(foundPage.parent_page_id);
+        setParentSlug(parent?.slug || null);
+      } else {
+        setParentSlug(null);
+      }
 
       // Initialize filter values
       if (foundPage.filter_params) {
@@ -61,7 +70,7 @@ export default function ViewPage() {
       setNotFound(true);
     }
     setLoading(false);
-  }, [slug, currentTenant]);
+  }, [slug, currentTenant, getPageById, getPageBySlug]);
 
   const loadData = async (dsId: string, params: Record<string, string>) => {
     const ds = await getDataSourceById(dsId);
@@ -128,24 +137,28 @@ export default function ViewPage() {
 
   return (
     <AppLayout>
-      <div className="max-w-6xl space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-semibold">{page.title}</h1>
-            {page.status === 'draft' && (
-              <NexusBadge variant="warning">Rascunho</NexusBadge>
+      <div className="w-full px-6 space-y-6">
+        {(isTenantAdmin || parentSlug) && (
+          <div className="flex justify-end gap-2">
+            {parentSlug && (
+              <Button
+                variant="outline"
+                onClick={() => navigate(withOrg(`/views/${parentSlug}`))}
+              >
+                Voltar
+              </Button>
+            )}
+            {isTenantAdmin && (
+              <Button
+                variant="outline"
+                onClick={() => navigate(withOrg(`/views/${page.id}/edit`))}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Editar
+              </Button>
             )}
           </div>
-          {isTenantAdmin && (
-            <Button
-              variant="outline"
-              onClick={() => navigate(`/views/${page.id}/edit`)}
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Editar
-            </Button>
-          )}
-        </div>
+        )}
 
         {/* Filters */}
         {page.has_filters && page.filter_params && page.filter_params.length > 0 && (

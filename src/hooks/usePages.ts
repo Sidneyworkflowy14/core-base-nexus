@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/contexts/TenantContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,12 +10,14 @@ interface PageRow {
   tenant_id: string;
   title: string;
   slug: string;
+  icon: string | null;
   status: string;
   schema_json: unknown;
   version: number;
   data_source_id: string | null;
   has_filters: boolean;
   filter_params: unknown;
+  parent_page_id: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -28,6 +30,8 @@ export function usePages() {
   const { log } = useAuditLog();
   const [pages, setPages] = useState<Page[]>([]);
   const [loading, setLoading] = useState(true);
+  const inFlightRef = useRef(false);
+  const lastErrorAtRef = useRef<number | null>(null);
 
   const fetchPages = useCallback(async () => {
     if (!currentTenant) {
@@ -36,6 +40,13 @@ export function usePages() {
       return;
     }
 
+    if (inFlightRef.current) return;
+    const lastErrorAt = lastErrorAtRef.current;
+    if (lastErrorAt && Date.now() - lastErrorAt < 4000) {
+      return;
+    }
+
+    inFlightRef.current = true;
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -52,22 +63,27 @@ export function usePages() {
         tenant_id: item.tenant_id,
         title: item.title,
         slug: item.slug,
+        icon: item.icon || 'file',
         status: item.status as 'draft' | 'published',
         schema_json: item.schema_json as PageSchema,
         version: item.version,
         data_source_id: item.data_source_id,
         has_filters: item.has_filters,
         filter_params: item.filter_params as FilterParam[],
+        parent_page_id: item.parent_page_id,
         created_by: item.created_by,
         created_at: item.created_at,
         updated_at: item.updated_at,
       }));
 
       setPages(items);
+      lastErrorAtRef.current = null;
     } catch (error) {
       console.error('Error fetching pages:', error);
+      lastErrorAtRef.current = Date.now();
     } finally {
       setLoading(false);
+      inFlightRef.current = false;
     }
   }, [currentTenant]);
 
@@ -75,7 +91,7 @@ export function usePages() {
     fetchPages();
   }, [fetchPages]);
 
-  const getPageById = async (id: string): Promise<Page | null> => {
+  const getPageById = useCallback(async (id: string): Promise<Page | null> => {
     const { data, error } = await supabase
       .from('pages' as any)
       .select('*')
@@ -93,19 +109,21 @@ export function usePages() {
       tenant_id: item.tenant_id,
       title: item.title,
       slug: item.slug,
+      icon: item.icon || 'file',
       status: item.status as 'draft' | 'published',
       schema_json: item.schema_json as PageSchema,
       version: item.version,
       data_source_id: item.data_source_id,
       has_filters: item.has_filters,
       filter_params: item.filter_params as FilterParam[],
+      parent_page_id: item.parent_page_id,
       created_by: item.created_by,
       created_at: item.created_at,
       updated_at: item.updated_at,
     };
-  };
+  }, []);
 
-  const getPageBySlug = async (slug: string): Promise<Page | null> => {
+  const getPageBySlug = useCallback(async (slug: string): Promise<Page | null> => {
     if (!currentTenant) return null;
 
     const { data, error } = await supabase
@@ -126,24 +144,28 @@ export function usePages() {
       tenant_id: item.tenant_id,
       title: item.title,
       slug: item.slug,
+      icon: item.icon || 'file',
       status: item.status as 'draft' | 'published',
       schema_json: item.schema_json as PageSchema,
       version: item.version,
       data_source_id: item.data_source_id,
       has_filters: item.has_filters,
       filter_params: item.filter_params as FilterParam[],
+      parent_page_id: item.parent_page_id,
       created_by: item.created_by,
       created_at: item.created_at,
       updated_at: item.updated_at,
     };
-  };
+  }, [currentTenant]);
 
   const createPage = async (data: {
     title: string;
     slug: string;
+    icon?: string;
     has_filters?: boolean;
     filter_params?: FilterParam[];
     data_source_id?: string | null;
+    parent_page_id?: string | null;
   }) => {
     if (!currentTenant || !user) return null;
 
@@ -153,12 +175,14 @@ export function usePages() {
         tenant_id: currentTenant.id,
         title: data.title,
         slug: data.slug,
+        icon: data.icon ?? 'file',
         status: 'draft',
         schema_json: { blocks: [] },
         version: 1,
         has_filters: data.has_filters ?? false,
         filter_params: data.filter_params ?? [],
         data_source_id: data.data_source_id ?? null,
+        parent_page_id: data.parent_page_id ?? null,
         created_by: user.id,
       }])
       .select()
@@ -183,10 +207,12 @@ export function usePages() {
   const updatePage = async (id: string, data: Partial<{
     title: string;
     slug: string;
+    icon: string;
     schema_json: PageSchema;
     data_source_id: string | null;
     has_filters: boolean;
     filter_params: FilterParam[];
+    parent_page_id: string | null;
   }>) => {
     const { error } = await supabase
       .from('pages' as any)

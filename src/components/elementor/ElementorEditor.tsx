@@ -5,6 +5,7 @@ import { ElementorCanvas } from './ElementorCanvas';
 import { ElementorWidgetsPalette } from './ElementorWidgetsPalette';
 import { ElementorPropertiesPanel } from './ElementorPropertiesPanel';
 import { PageProvider } from '@/contexts/PageContext';
+import { ViewDataProvider } from '@/contexts/ViewDataContext';
 import { cn } from '@/lib/utils';
 
 interface ElementorEditorProps {
@@ -42,6 +43,8 @@ export function ElementorEditor({
     sectionId: string;
     columnId?: string;
     widgetId?: string;
+    containerWidgetId?: string;
+    innerColumnId?: string;
   } | null>(null);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -52,7 +55,7 @@ export function ElementorEditor({
     const newSection = createSection(columnWidths);
     setSections([...sections, newSection]);
     setSelectedElement({ type: 'section', sectionId: newSection.id });
-  }, [sections]);
+  }, [sections, selectedElement]);
 
   // Add widget to column
   const handleAddWidget = useCallback((widgetType: WidgetType, sectionId: string, columnId: string) => {
@@ -103,6 +106,39 @@ export function ElementorEditor({
 
   // Update widget
   const handleUpdateWidget = useCallback((sectionId: string, columnId: string, widgetId: string, settings: Partial<Widget['settings']>) => {
+    if (selectedElement?.containerWidgetId && selectedElement?.innerColumnId) {
+      const containerId = selectedElement.containerWidgetId;
+      const innerColumnId = selectedElement.innerColumnId;
+      setSections(sections.map(section => {
+        if (section.id !== sectionId) return section;
+        return {
+          ...section,
+          children: section.children.map(column => {
+            if (column.id !== columnId) return column;
+            return {
+              ...column,
+              children: column.children.map(widget => {
+                if (widget.id !== containerId) return widget;
+                const columns = widget.settings.subsectionColumns || [];
+                const nextColumns = columns.map(innerCol => {
+                  if (innerCol.id !== innerColumnId) return innerCol;
+                  return {
+                    ...innerCol,
+                    children: innerCol.children.map(innerWidget => {
+                      if (innerWidget.id !== widgetId) return innerWidget;
+                      return { ...innerWidget, settings: { ...innerWidget.settings, ...settings } };
+                    }),
+                  };
+                });
+                return { ...widget, settings: { ...widget.settings, subsectionColumns: nextColumns } };
+              }),
+            };
+          }),
+        };
+      }));
+      return;
+    }
+
     setSections(sections.map(section => {
       if (section.id !== sectionId) return section;
       return {
@@ -185,6 +221,284 @@ export function ElementorEditor({
     }));
   }, [sections]);
 
+  const handleMoveWidgetTo = useCallback((
+    fromSectionId: string,
+    fromColumnId: string,
+    widgetId: string,
+    toSectionId: string,
+    toColumnId: string
+  ) => {
+    if (fromSectionId === toSectionId && fromColumnId === toColumnId) return;
+
+    const widgetToMove = sections
+      .find(s => s.id === fromSectionId)
+      ?.children.find(c => c.id === fromColumnId)
+      ?.children.find(w => w.id === widgetId);
+    if (!widgetToMove) return;
+
+    setSections(sections.map(section => {
+      if (section.id === fromSectionId && section.id === toSectionId) {
+        return {
+          ...section,
+          children: section.children.map(column => {
+            if (column.id === fromColumnId) {
+              return {
+                ...column,
+                children: column.children.filter(w => w.id !== widgetId),
+              };
+            }
+            if (column.id === toColumnId) {
+              return {
+                ...column,
+                children: [...column.children, widgetToMove],
+              };
+            }
+            return column;
+          }),
+        };
+      }
+      if (section.id === fromSectionId) {
+        return {
+          ...section,
+          children: section.children.map(column => {
+            if (column.id !== fromColumnId) return column;
+            return {
+              ...column,
+              children: column.children.filter(w => w.id !== widgetId),
+            };
+          }),
+        };
+      }
+      if (section.id === toSectionId) {
+        return {
+          ...section,
+          children: section.children.map(column => {
+            if (column.id !== toColumnId) return column;
+            return {
+              ...column,
+              children: [...column.children, widgetToMove],
+            };
+          }),
+        };
+      }
+      return section;
+    }));
+
+    if (selectedElement?.type === 'widget' && selectedElement.widgetId === widgetId) {
+      setSelectedElement({
+        type: 'widget',
+        sectionId: toSectionId,
+        columnId: toColumnId,
+        widgetId,
+      });
+    }
+  }, [sections, selectedElement]);
+
+  const updateSubsectionColumns = useCallback((
+    sectionId: string,
+    columnId: string,
+    containerWidgetId: string,
+    updater: (columns: import('@/types/elementor').Column[]) => import('@/types/elementor').Column[]
+  ) => {
+    setSections(sections.map(section => {
+      if (section.id !== sectionId) return section;
+      return {
+        ...section,
+        children: section.children.map(column => {
+          if (column.id !== columnId) return column;
+          return {
+            ...column,
+            children: column.children.map(widget => {
+              if (widget.id !== containerWidgetId) return widget;
+              const columns = widget.settings.subsectionColumns || [];
+              const nextColumns = updater(columns);
+              return { ...widget, settings: { ...widget.settings, subsectionColumns: nextColumns } };
+            }),
+          };
+        }),
+      };
+    }));
+  }, [sections]);
+
+  const handleAddSubWidget = useCallback((
+    sectionId: string,
+    columnId: string,
+    containerWidgetId: string,
+    innerColumnId: string,
+    widgetType: WidgetType
+  ) => {
+    const newWidget = createWidget(widgetType);
+    updateSubsectionColumns(sectionId, columnId, containerWidgetId, (columns) =>
+      columns.map(col => col.id === innerColumnId
+        ? { ...col, children: [...col.children, newWidget] }
+        : col
+      )
+    );
+    setSelectedElement({
+      type: 'widget',
+      sectionId,
+      columnId,
+      containerWidgetId,
+      innerColumnId,
+      widgetId: newWidget.id,
+    });
+    setRightPanelTab('properties');
+  }, [updateSubsectionColumns]);
+
+  const handleDeleteSubWidget = useCallback((
+    sectionId: string,
+    columnId: string,
+    containerWidgetId: string,
+    innerColumnId: string,
+    widgetId: string
+  ) => {
+    updateSubsectionColumns(sectionId, columnId, containerWidgetId, (columns) =>
+      columns.map(col => col.id === innerColumnId
+        ? { ...col, children: col.children.filter(w => w.id !== widgetId) }
+        : col
+      )
+    );
+    if (selectedElement?.widgetId === widgetId) {
+      setSelectedElement(null);
+    }
+  }, [updateSubsectionColumns, selectedElement]);
+
+  const handleMoveSubWidget = useCallback((
+    sectionId: string,
+    columnId: string,
+    containerWidgetId: string,
+    innerColumnId: string,
+    widgetId: string,
+    direction: 'up' | 'down'
+  ) => {
+    updateSubsectionColumns(sectionId, columnId, containerWidgetId, (columns) =>
+      columns.map(col => {
+        if (col.id !== innerColumnId) return col;
+        const widgets = [...col.children];
+        const index = widgets.findIndex(w => w.id === widgetId);
+        if (index === -1) return col;
+        const newIndex = direction === 'up' ? index - 1 : index + 1;
+        if (newIndex < 0 || newIndex >= widgets.length) return col;
+        [widgets[index], widgets[newIndex]] = [widgets[newIndex], widgets[index]];
+        return { ...col, children: widgets };
+      })
+    );
+  }, [updateSubsectionColumns]);
+
+  const handleDuplicateSubWidget = useCallback((
+    sectionId: string,
+    columnId: string,
+    containerWidgetId: string,
+    innerColumnId: string,
+    widgetId: string
+  ) => {
+    updateSubsectionColumns(sectionId, columnId, containerWidgetId, (columns) =>
+      columns.map(col => {
+        if (col.id !== innerColumnId) return col;
+        const index = col.children.findIndex(w => w.id === widgetId);
+        if (index === -1) return col;
+        const original = col.children[index];
+        const duplicated: Widget = { ...original, id: crypto.randomUUID(), settings: { ...original.settings } };
+        const nextChildren = [...col.children];
+        nextChildren.splice(index + 1, 0, duplicated);
+        return { ...col, children: nextChildren };
+      })
+    );
+  }, [updateSubsectionColumns]);
+
+  const handleMoveSubWidgetTo = useCallback((
+    sectionId: string,
+    columnId: string,
+    containerWidgetId: string,
+    fromInnerColumnId: string,
+    widgetId: string,
+    toInnerColumnId: string
+  ) => {
+    if (fromInnerColumnId === toInnerColumnId) return;
+    let widgetToMove: Widget | null = null;
+    updateSubsectionColumns(sectionId, columnId, containerWidgetId, (columns) => {
+      const next = columns.map(col => {
+        if (col.id === fromInnerColumnId) {
+          const found = col.children.find(w => w.id === widgetId);
+          if (found) widgetToMove = found;
+          return { ...col, children: col.children.filter(w => w.id !== widgetId) };
+        }
+        return col;
+      }).map(col => {
+        if (col.id === toInnerColumnId && widgetToMove) {
+          return { ...col, children: [...col.children, widgetToMove] };
+        }
+        return col;
+      });
+      return next;
+    });
+  }, [updateSubsectionColumns]);
+
+  const handleMoveWidgetToSubsection = useCallback((
+    fromSectionId: string,
+    fromColumnId: string,
+    widgetId: string,
+    toSectionId: string,
+    toColumnId: string,
+    containerWidgetId: string,
+    innerColumnId: string
+  ) => {
+    const widgetToMove = sections
+      .find(s => s.id === fromSectionId)
+      ?.children.find(c => c.id === fromColumnId)
+      ?.children.find(w => w.id === widgetId);
+    if (!widgetToMove) return;
+
+    setSections(sections.map(section => {
+      if (section.id === fromSectionId) {
+        return {
+          ...section,
+          children: section.children.map(column => {
+            if (column.id !== fromColumnId) return column;
+            return {
+              ...column,
+              children: column.children.filter(w => w.id !== widgetId),
+            };
+          }),
+        };
+      }
+      if (section.id === toSectionId) {
+        return {
+          ...section,
+          children: section.children.map(column => {
+            if (column.id !== toColumnId) return column;
+            return {
+              ...column,
+              children: column.children.map(widget => {
+                if (widget.id !== containerWidgetId) return widget;
+                const columns = widget.settings.subsectionColumns || [];
+                const nextColumns = columns.map(innerCol => {
+                  if (innerCol.id !== innerColumnId) return innerCol;
+                  return {
+                    ...innerCol,
+                    children: [...innerCol.children, widgetToMove],
+                  };
+                });
+                return { ...widget, settings: { ...widget.settings, subsectionColumns: nextColumns } };
+              }),
+            };
+          }),
+        };
+      }
+      return section;
+    }));
+
+    setSelectedElement({
+      type: 'widget',
+      sectionId: toSectionId,
+      columnId: toColumnId,
+      containerWidgetId,
+      innerColumnId,
+      widgetId,
+    });
+    setRightPanelTab('properties');
+  }, [sections]);
+
   // Duplicate widget
   const handleDuplicateWidget = useCallback((sectionId: string, columnId: string, widgetId: string) => {
     setSections(sections.map(section => {
@@ -251,6 +565,16 @@ export function ElementorEditor({
       return { type: 'column' as const, data: column, section };
     }
     
+    if (selectedElement.containerWidgetId && selectedElement.innerColumnId) {
+      const containerWidget = column.children.find(w => w.id === selectedElement.containerWidgetId);
+      const innerColumns = containerWidget?.settings.subsectionColumns || [];
+      const innerColumn = innerColumns.find(c => c.id === selectedElement.innerColumnId);
+      const innerWidget = innerColumn?.children.find(w => w.id === selectedElement.widgetId);
+      if (innerWidget) {
+        return { type: 'widget' as const, data: innerWidget, section, column };
+      }
+    }
+
     const widget = column.children.find(w => w.id === selectedElement.widgetId);
     if (!widget) return null;
     
@@ -259,7 +583,8 @@ export function ElementorEditor({
 
   return (
     <PageProvider pageId={pageId} pageSlug={pageSlug} pageTitle={pageTitle}>
-      <div className="h-screen flex flex-col bg-background">
+      <ViewDataProvider>
+        <div className="h-screen flex flex-col bg-background">
         {/* Toolbar */}
         <ElementorToolbar
           pageTitle={pageTitle}
@@ -288,18 +613,26 @@ export function ElementorEditor({
 
           {/* Center - Canvas */}
           <div className="flex-1 overflow-hidden bg-muted/30">
-            <ElementorCanvas
-              sections={sections}
-              selectedElement={selectedElement}
-              previewData={previewData}
-              onSelectElement={setSelectedElement}
-              onAddWidget={handleAddWidget}
-              onDeleteSection={handleDeleteSection}
-              onDeleteWidget={handleDeleteWidget}
-              onMoveSection={handleMoveSection}
-              onMoveWidget={handleMoveWidget}
-              onDuplicateWidget={handleDuplicateWidget}
-            />
+          <ElementorCanvas
+            sections={sections}
+            selectedElement={selectedElement}
+            previewData={previewData}
+            onSelectElement={setSelectedElement}
+            onAddWidget={handleAddWidget}
+            onDeleteSection={handleDeleteSection}
+            onDeleteWidget={handleDeleteWidget}
+            onMoveSection={handleMoveSection}
+            onMoveWidget={handleMoveWidget}
+            onDuplicateWidget={handleDuplicateWidget}
+            onMoveWidgetTo={handleMoveWidgetTo}
+            onUpdateWidgetSettings={handleUpdateWidget}
+            onAddSubWidget={handleAddSubWidget}
+            onDeleteSubWidget={handleDeleteSubWidget}
+            onMoveSubWidget={handleMoveSubWidget}
+            onDuplicateSubWidget={handleDuplicateSubWidget}
+            onMoveSubWidgetTo={handleMoveSubWidgetTo}
+            onMoveWidgetToSubsection={handleMoveWidgetToSubsection}
+          />
           </div>
 
           {/* Right Panel - Properties */}
@@ -325,6 +658,7 @@ export function ElementorEditor({
           />
         </div>
       </div>
+    </ViewDataProvider>
     </PageProvider>
   );
 }

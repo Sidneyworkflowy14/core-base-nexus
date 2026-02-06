@@ -8,6 +8,8 @@ interface SelectedElement {
   sectionId: string;
   columnId?: string;
   widgetId?: string;
+  containerWidgetId?: string;
+  innerColumnId?: string;
 }
 
 interface ElementorCanvasProps {
@@ -21,6 +23,35 @@ interface ElementorCanvasProps {
   onMoveSection: (sectionId: string, direction: 'up' | 'down') => void;
   onMoveWidget: (sectionId: string, columnId: string, widgetId: string, direction: 'up' | 'down') => void;
   onDuplicateWidget: (sectionId: string, columnId: string, widgetId: string) => void;
+  onMoveWidgetTo: (
+    fromSectionId: string,
+    fromColumnId: string,
+    widgetId: string,
+    toSectionId: string,
+    toColumnId: string
+  ) => void;
+  onUpdateWidgetSettings: (sectionId: string, columnId: string, widgetId: string, settings: Partial<Widget['settings']>) => void;
+  onAddSubWidget: (sectionId: string, columnId: string, containerWidgetId: string, innerColumnId: string, widgetType: WidgetType) => void;
+  onDeleteSubWidget: (sectionId: string, columnId: string, containerWidgetId: string, innerColumnId: string, widgetId: string) => void;
+  onMoveSubWidget: (sectionId: string, columnId: string, containerWidgetId: string, innerColumnId: string, widgetId: string, direction: 'up' | 'down') => void;
+  onDuplicateSubWidget: (sectionId: string, columnId: string, containerWidgetId: string, innerColumnId: string, widgetId: string) => void;
+  onMoveSubWidgetTo: (
+    sectionId: string,
+    columnId: string,
+    containerWidgetId: string,
+    fromInnerColumnId: string,
+    widgetId: string,
+    toInnerColumnId: string
+  ) => void;
+  onMoveWidgetToSubsection: (
+    fromSectionId: string,
+    fromColumnId: string,
+    widgetId: string,
+    toSectionId: string,
+    toColumnId: string,
+    containerWidgetId: string,
+    innerColumnId: string
+  ) => void;
 }
 
 export function ElementorCanvas({
@@ -34,9 +65,34 @@ export function ElementorCanvas({
   onMoveSection,
   onMoveWidget,
   onDuplicateWidget,
+  onMoveWidgetTo,
+  onUpdateWidgetSettings,
+  onAddSubWidget,
+  onDeleteSubWidget,
+  onMoveSubWidget,
+  onDuplicateSubWidget,
+  onMoveSubWidgetTo,
+  onMoveWidgetToSubsection,
 }: ElementorCanvasProps) {
   const handleDrop = (e: React.DragEvent, sectionId: string, columnId: string) => {
     e.preventDefault();
+    const widgetMove = e.dataTransfer.getData('widgetMove');
+    if (widgetMove) {
+      try {
+        const payload = JSON.parse(widgetMove) as {
+          sectionId: string;
+          columnId: string;
+          widgetId: string;
+        };
+        if (payload?.sectionId && payload?.columnId && payload?.widgetId) {
+          onMoveWidgetTo(payload.sectionId, payload.columnId, payload.widgetId, sectionId, columnId);
+          return;
+        }
+      } catch {
+        // ignore invalid payload
+      }
+    }
+
     const widgetType = e.dataTransfer.getData('widgetType') as WidgetType;
     if (widgetType) {
       onAddWidget(widgetType, sectionId, columnId);
@@ -77,6 +133,13 @@ export function ElementorCanvas({
             onMoveWidget={onMoveWidget}
             onDuplicateWidget={onDuplicateWidget}
             onDrop={handleDrop}
+            onUpdateWidgetSettings={onUpdateWidgetSettings}
+            onAddSubWidget={onAddSubWidget}
+            onDeleteSubWidget={onDeleteSubWidget}
+            onMoveSubWidget={onMoveSubWidget}
+            onDuplicateSubWidget={onDuplicateSubWidget}
+            onMoveSubWidgetTo={onMoveSubWidgetTo}
+            onMoveWidgetToSubsection={onMoveWidgetToSubsection}
           />
         ))}
       </div>

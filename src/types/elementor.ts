@@ -24,6 +24,8 @@ export interface ColumnSettings {
   width: ColumnWidth;
   verticalAlign: 'start' | 'center' | 'end';
   padding: 'none' | 'sm' | 'md' | 'lg';
+  fullHeight?: boolean;
+  flow?: 'stack' | 'row';
 }
 
 export type WidgetType = 
@@ -36,9 +38,16 @@ export type WidgetType =
   | 'icon'
   | 'video'
   | 'html'
+  | 'iframe'
+  | 'subsection'
+  | 'filters_header'
+  | 'filters_result_list'
   | 'table'
   | 'kpi'
-  | 'chart';
+  | 'chart'
+  | 'input_text'
+  | 'input_select'
+  | 'input_boolean';
 
 // Common style properties for all widgets (Elementor-style)
 export interface WidgetStyleSettings {
@@ -103,12 +112,22 @@ export interface WidgetSettings {
   text?: string;
   level?: 1 | 2 | 3 | 4 | 5 | 6;
   align?: 'left' | 'center' | 'right';
+  headingIcon?: string;
+  headingIconPosition?: 'left' | 'right';
   
   // Text/HTML
   content?: string;
   html?: string;
+  htmlJs?: string;
   css?: string;
   enableScripts?: boolean;
+
+  // Iframe
+  iframeUrl?: string;
+  iframeHtml?: string;
+  iframeHeight?: number;
+  iframeUseUiKit?: boolean;
+  iframeSendContext?: boolean;
   
   // Image
   src?: string;
@@ -136,6 +155,17 @@ export interface WidgetSettings {
   videoUrl?: string;
   autoplay?: boolean;
   controls?: boolean;
+
+  // Inputs
+  inputLabel?: string;
+  placeholder?: string;
+  options?: string[];
+  buttonLabel?: string;
+  trueLabel?: string;
+  falseLabel?: string;
+  buttonRequiresFilters?: boolean;
+  buttonAction?: 'none' | 'navigate';
+  buttonTargetPageId?: string;
   
   // Table
   title?: string;
@@ -150,6 +180,58 @@ export interface WidgetSettings {
   suffix?: string;
   aggregation?: 'count' | 'sum' | 'avg' | 'min' | 'max';
   field?: string;
+  filterLabel?: string;
+  useFilterResult?: boolean;
+  kpiFilterOptionIndex?: number;
+  kpiFilterDisplayMode?: 'label' | 'value';
+
+  // Filters Header
+  filtersEndpoint?: string;
+  filterFields?: {
+    key: string;
+    label: string;
+    type: 'text' | 'number' | 'list' | 'boolean';
+    numberFormat?: 'number' | 'currency' | 'percent';
+    options?: { label: string; value: string }[] | string[];
+    optionsEndpoint?: string;
+    dependsOn?: string;
+    dependsParam?: string;
+    lockOnAutoFill?: boolean;
+  }[];
+  filtersTitleIcon?: string;
+  filtersTitleIconPosition?: 'left' | 'right';
+  filtersLayout?: 'grid' | 'inline';
+  filtersColumns?: 1 | 2 | 3 | 4;
+  filtersPeriodPlacement?: 'right' | 'below';
+  filtersButtonPlacement?: 'right' | 'below';
+  filtersShowPeriod?: boolean;
+  filtersShowApply?: boolean;
+  filtersAutoApply?: boolean;
+  filtersAutoApplyRequireAll?: boolean;
+  filtersOptionsFallback?: 'field' | 'block' | 'none';
+  filtersSendContext?: boolean;
+  filtersPaymentPopup?: boolean;
+  filtersPaymentTotalKey?: string;
+  filtersAutoOptions?: boolean;
+  filtersPaymentSubmitEndpoint?: string;
+  filtersPaymentTicketEndpoint?: string;
+  filtersEndpointPrefill?: boolean;
+  filtersEndpointPrefillMap?: Record<string, string>;
+  filtersUseCard?: boolean;
+
+  // Filters Result List
+  filtersResultTitle?: string;
+  filtersResultKey?: string;
+  filtersResultTargetKey?: string;
+  filtersResultEmptyMessage?: string;
+  filtersResultDisplayMode?: 'label' | 'value';
+  filtersResultValueMode?: 'label' | 'value';
+
+  // Subsection (nested layout)
+  subsectionColumns?: Column[];
+  subsectionGap?: 'none' | 'sm' | 'md' | 'lg';
+  subsectionPadding?: 'none' | 'sm' | 'md' | 'lg';
+  subsectionUseCard?: boolean;
   
   // Chart
   chartType?: 'bar' | 'line' | 'pie';
@@ -211,14 +293,21 @@ export const WIDGET_CATEGORIES = [
       { type: 'table' as WidgetType, label: 'Tabela', icon: 'table' },
       { type: 'kpi' as WidgetType, label: 'KPI', icon: 'gauge' },
       { type: 'chart' as WidgetType, label: 'Gráfico', icon: 'chart-bar' },
+      { type: 'filters_header' as WidgetType, label: 'Cabeçalho Filtros', icon: 'sliders' },
+      { type: 'filters_result_list' as WidgetType, label: 'Opções do Cabeçalho', icon: 'list' },
+      { type: 'input_text' as WidgetType, label: 'Texto', icon: 'edit' },
+      { type: 'input_select' as WidgetType, label: 'Select', icon: 'list' },
+      { type: 'input_boolean' as WidgetType, label: 'Booleano', icon: 'check' },
     ],
   },
   {
     name: 'Avançado',
     widgets: [
       { type: 'html' as WidgetType, label: 'HTML', icon: 'code' },
+      { type: 'iframe' as WidgetType, label: 'Iframe (UI Kit)', icon: 'code' },
       { type: 'icon' as WidgetType, label: 'Ícone', icon: 'star' },
       { type: 'video' as WidgetType, label: 'Vídeo', icon: 'play' },
+      { type: 'subsection' as WidgetType, label: 'Sub-seção', icon: 'layout' },
     ],
   },
 ];
@@ -256,6 +345,8 @@ export function createColumn(width: ColumnWidth = 12): Column {
       width,
       verticalAlign: 'start',
       padding: 'sm',
+      fullHeight: false,
+      flow: 'stack',
     },
     children: [],
   };
@@ -263,18 +354,30 @@ export function createColumn(width: ColumnWidth = 12): Column {
 
 export function createWidget(widgetType: WidgetType): Widget {
   const defaults: Record<WidgetType, WidgetSettings> = {
-    heading: { text: 'Título', level: 2, align: 'left' },
+    heading: { text: 'Título', level: 2, align: 'left', headingIcon: '', headingIconPosition: 'left' },
     text: { content: 'Digite seu texto aqui...' },
     image: { src: '', alt: '', size: 'auto' },
-    button: { label: 'Clique aqui', link: '#', variant: 'primary' },
+    button: { label: 'Clique aqui', link: '#', variant: 'primary', buttonRequiresFilters: false, buttonAction: 'none' },
     spacer: { height: 40 },
     divider: { dividerStyle: 'solid', width: 'full' },
     icon: { icon: 'star', iconSize: 48 },
     video: { videoUrl: '', autoplay: false, controls: true },
     html: { 
-      html: '<div class="custom">Conteúdo customizado</div>',
-      css: '.custom { padding: 1rem; }',
-      enableScripts: false,
+      html: '<div class="nexus-card"><div class="flex items-center justify-between"><div class="text-lg font-semibold">Título</div><span class="nexus-badge-blue">Beta</span></div><p class="text-muted-foreground mt-2">Descrição usando o UI Kit.</p><button class="mt-4 px-4 py-2 rounded-lg bg-primary text-primary-foreground">Ação</button></div>',
+      htmlJs: '',
+    },
+    iframe: {
+      iframeUrl: '',
+      iframeHtml: '',
+      iframeHeight: 320,
+      iframeUseUiKit: true,
+      iframeSendContext: false,
+    },
+    subsection: {
+      subsectionColumns: [createColumn(6), createColumn(6)],
+      subsectionGap: 'md',
+      subsectionPadding: 'sm',
+      subsectionUseCard: false,
     },
     table: { 
       title: 'Tabela',
@@ -285,6 +388,42 @@ export function createWidget(widgetType: WidgetType): Widget {
       title: 'KPI',
       value: '0',
       format: 'number',
+      kpiFilterOptionIndex: 0,
+      kpiFilterDisplayMode: 'label',
+    },
+    filters_header: {
+      filtersEndpoint: '',
+      filterFields: [
+        { key: 'campo1', label: 'Campo 1', type: 'text' },
+        { key: 'campo2', label: 'Campo 2', type: 'text' },
+      ],
+      filtersLayout: 'grid',
+      filtersColumns: 2,
+      filtersPeriodPlacement: 'right',
+      filtersButtonPlacement: 'right',
+      filtersShowPeriod: true,
+      filtersShowApply: true,
+      filtersOptionsFallback: 'field',
+      filtersAutoApplyRequireAll: false,
+      filtersSendContext: false,
+      filtersPaymentPopup: false,
+      filtersPaymentTotalKey: '',
+      filtersAutoOptions: true,
+      filtersPaymentSubmitEndpoint: '',
+      filtersPaymentTicketEndpoint: '',
+      filtersEndpointPrefill: false,
+      filtersEndpointPrefillMap: {},
+      filtersTitleIcon: '',
+      filtersTitleIconPosition: 'left',
+      filtersUseCard: true,
+    },
+    filters_result_list: {
+      filtersResultTitle: 'Opções de parcelamento',
+      filtersResultKey: 'installments',
+      filtersResultTargetKey: 'parcelamento',
+      filtersResultEmptyMessage: 'Nenhuma opção disponível.',
+      filtersResultDisplayMode: 'label',
+      filtersResultValueMode: 'value',
     },
     chart: {
       title: 'Gráfico',
@@ -293,6 +432,22 @@ export function createWidget(widgetType: WidgetType): Widget {
         { label: 'Item 1', value: 10 },
         { label: 'Item 2', value: 20 },
       ],
+    },
+    input_text: {
+      inputLabel: 'Digite um valor',
+      placeholder: 'Ex: 123',
+      buttonLabel: 'Enviar',
+    },
+    input_select: {
+      inputLabel: 'Selecione uma opção',
+      options: ['Opção A', 'Opção B'],
+      buttonLabel: 'Enviar',
+    },
+    input_boolean: {
+      inputLabel: 'Ativar?',
+      trueLabel: 'Sim',
+      falseLabel: 'Não',
+      buttonLabel: 'Enviar',
     },
   };
 

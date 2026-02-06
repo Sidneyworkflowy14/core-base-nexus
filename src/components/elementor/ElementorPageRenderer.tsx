@@ -1,6 +1,7 @@
 import { Section } from '@/types/elementor';
 import { ElementorWidgetRenderer } from './ElementorWidgetRenderer';
 import { PageProvider } from '@/contexts/PageContext';
+import { ViewDataProvider } from '@/contexts/ViewDataContext';
 import { cn } from '@/lib/utils';
 
 interface ElementorPageRendererProps {
@@ -24,7 +25,8 @@ export function ElementorPageRenderer({
 
   return (
     <PageProvider pageId={pageId} pageSlug={pageSlug} pageTitle={pageTitle}>
-      <div className="space-y-6">
+      <ViewDataProvider>
+        <div className="space-y-6">
         {sections.map((section) => {
           const gapClass = {
             none: 'gap-0',
@@ -56,11 +58,12 @@ export function ElementorPageRenderer({
                     center: 'justify-center',
                     end: 'justify-end',
                   }[column.settings.verticalAlign];
+                  const fullHeightClass = column.settings.fullHeight ? 'min-h-screen' : '';
 
                   return (
                     <div
                       key={column.id}
-                      className={cn("flex flex-col", alignClass, columnPaddingClass)}
+                      className={cn("flex flex-col", alignClass, columnPaddingClass, fullHeightClass)}
                       style={{ flex: column.settings.width, minWidth: 0 }}
                     >
                       {column.children.map((widget) => (
@@ -77,7 +80,8 @@ export function ElementorPageRenderer({
             </div>
           );
         })}
-      </div>
+        </div>
+      </ViewDataProvider>
     </PageProvider>
   );
 }

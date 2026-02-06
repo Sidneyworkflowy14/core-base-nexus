@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTenant } from '@/contexts/TenantContext';
 import { useRoles } from '@/hooks/useRoles';
@@ -15,6 +15,7 @@ export function ProtectedRoute({ children, requireTenant = false, minRole }: Pro
   const { user, loading: authLoading } = useAuth();
   const { currentTenant, userTenants, loading: tenantLoading } = useTenant();
   const { hasMinRole } = useRoles();
+  const { orgSlug } = useParams<{ orgSlug?: string }>();
 
   if (authLoading || tenantLoading) {
     return (
@@ -49,7 +50,8 @@ export function ProtectedRoute({ children, requireTenant = false, minRole }: Pro
 
   // Check minimum role
   if (minRole && !hasMinRole(minRole)) {
-    return <Navigate to="/dashboard" replace />;
+    const slug = currentTenant?.slug || orgSlug;
+    return <Navigate to={slug ? `/${slug}/dashboard` : "/dashboard"} replace />;
   }
 
   return <>{children}</>;

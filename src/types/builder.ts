@@ -90,12 +90,14 @@ export interface Page {
   tenant_id: string;
   title: string;
   slug: string;
+  icon: string;
   status: 'draft' | 'published';
   schema_json: PageSchema;
   version: number;
   data_source_id: string | null;
   has_filters: boolean;
   filter_params: FilterParam[];
+  parent_page_id?: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;

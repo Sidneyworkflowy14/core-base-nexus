@@ -48,7 +48,7 @@ export default function SuperAdminPage() {
     pages: number;
   }>({ tenants: 0, users: 0, pages: 0 });
 
-  const [selectedTenantForLogs, setSelectedTenantForLogs] = useState<string>('');
+  const [selectedTenantForLogs, setSelectedTenantForLogs] = useState<string>('__all__');
   
   // Modal state
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
@@ -63,7 +63,12 @@ export default function SuperAdminPage() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setTenants((data || []) as Tenant[]);
+      setTenants(
+        (data || []).map((tenant: any) => ({
+          ...tenant,
+          slug: tenant.slug || '',
+        })) as Tenant[]
+      );
     } catch (err) {
       console.error('Error fetching tenants:', err);
     } finally {
@@ -98,7 +103,7 @@ export default function SuperAdminPage() {
   }, [isSuperAdmin]);
 
   useEffect(() => {
-    if (selectedTenantForLogs) {
+    if (selectedTenantForLogs && selectedTenantForLogs !== '__all__') {
       fetchLogs({ tenantId: selectedTenantForLogs, limit: 100 });
     } else {
       fetchLogs({ limit: 50 });
@@ -113,9 +118,16 @@ export default function SuperAdminPage() {
     setError(null);
 
     try {
+      const slugBase = newTenantName
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+      const slug = slugBase || `org-${Date.now()}`;
+
       const { data, error } = await supabase
         .from('tenants')
-        .insert([{ name: newTenantName }])
+        .insert([{ name: newTenantName, slug }])
         .select()
         .single();
 
@@ -379,7 +391,7 @@ export default function SuperAdminPage() {
                       <SelectValue placeholder="Todos os tenants" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Todos</SelectItem>
+                      <SelectItem value="__all__">Todos</SelectItem>
                       {tenants.map((t) => (
                         <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
                       ))}
@@ -440,7 +452,10 @@ export default function SuperAdminPage() {
           tenant={selectedTenant}
           open={detailsModalOpen}
           onClose={handleCloseDetails}
-          onTenantUpdated={() => {
+          onTenantUpdated={(updatedTenant) => {
+            if (updatedTenant) {
+              setSelectedTenant(updatedTenant);
+            }
             fetchTenants();
             fetchStats();
           }}

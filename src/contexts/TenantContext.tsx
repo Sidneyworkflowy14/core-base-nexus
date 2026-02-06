@@ -36,6 +36,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
           tenant:tenants (
             id,
             name,
+            slug,
             status,
             created_at
           )
@@ -44,14 +45,22 @@ export function TenantProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error;
 
-      const formattedMemberships: Membership[] = (memberships || []).map((m) => ({
-        id: m.id,
-        tenant_id: m.tenant_id,
-        user_id: m.user_id,
-        role: m.role as AppRole,
-        created_at: m.created_at,
-        tenant: m.tenant as unknown as Tenant,
-      }));
+      const formattedMemberships: Membership[] = (memberships || []).map((m) => {
+        const tenant = m.tenant as unknown as Tenant | null;
+        return {
+          id: m.id,
+          tenant_id: m.tenant_id,
+          user_id: m.user_id,
+          role: m.role as AppRole,
+          created_at: m.created_at,
+          tenant: tenant
+            ? {
+                ...tenant,
+                slug: tenant.slug || '',
+              }
+            : undefined,
+        };
+      });
 
       setUserTenants(formattedMemberships);
 

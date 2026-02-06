@@ -45,12 +45,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error as Error | null };
   };
 
+  const resetPassword = async (email: string) => {
+    const redirectUrl = `${window.location.origin}/auth`;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: redirectUrl,
+    });
+    return { error: error as Error | null };
+  };
+
+  const updateProfile = async (data: { full_name?: string; name?: string; avatar_url?: string }) => {
+    const { data: result, error } = await supabase.auth.updateUser({ data });
+    if (!error && result.user) {
+      setUser(result.user);
+    }
+    return { error: error as Error | null };
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, resetPassword, updateProfile, signOut }}>
       {children}
     </AuthContext.Provider>
   );

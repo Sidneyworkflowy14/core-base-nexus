@@ -99,21 +99,29 @@ export function useBranding() {
         logo_url: logoUrl ?? null,
       };
 
+      let savedRow: TenantBranding | null = null;
+
       if (branding) {
         // Update existing
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('tenant_branding')
           .update(payload)
-          .eq('id', branding.id);
+          .eq('id', branding.id)
+          .select('*')
+          .single();
 
         if (error) throw error;
+        savedRow = data as TenantBranding;
       } else {
         // Insert new
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('tenant_branding')
-          .insert(payload);
+          .insert(payload)
+          .select('*')
+          .single();
 
         if (error) throw error;
+        savedRow = data as TenantBranding;
       }
 
       await log({ 
@@ -121,6 +129,13 @@ export function useBranding() {
         entity: 'branding', 
         metadata: { themeMode, tokens: tokens as unknown as Json } as Record<string, Json>
       });
+      if (savedRow) {
+        setBranding({
+          ...savedRow,
+          tokens_json: (savedRow.tokens_json as unknown as BrandingTokens) || DEFAULT_TOKENS,
+          theme_mode: savedRow.theme_mode as ThemeMode,
+        });
+      }
       await fetchBranding();
       toast.success('Branding salvo com sucesso!');
     } catch (error) {

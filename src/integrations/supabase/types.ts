@@ -214,6 +214,8 @@ export type Database = {
           filter_params: Json | null
           has_filters: boolean
           id: string
+          icon: string | null
+          parent_page_id: string | null
           schema_json: Json
           slug: string
           status: string
@@ -230,6 +232,8 @@ export type Database = {
           filter_params?: Json | null
           has_filters?: boolean
           id?: string
+          icon?: string | null
+          parent_page_id?: string | null
           schema_json?: Json
           slug: string
           status?: string
@@ -246,6 +250,8 @@ export type Database = {
           filter_params?: Json | null
           has_filters?: boolean
           id?: string
+          icon?: string | null
+          parent_page_id?: string | null
           schema_json?: Json
           slug?: string
           status?: string
@@ -314,18 +320,21 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          slug: string | null
           status: string
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
+          slug?: string | null
           status?: string
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
+          slug?: string | null
           status?: string
         }
         Relationships: []

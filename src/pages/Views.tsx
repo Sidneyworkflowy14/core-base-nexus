@@ -4,6 +4,7 @@ import { useTenant } from '@/contexts/TenantContext';
 import { usePages } from '@/hooks/usePages';
 import { useDataSources } from '@/hooks/useDataSources';
 import { AppLayout } from '@/components/AppLayout';
+import { useOrgPath } from '@/hooks/useOrgPath';
 import { 
   NexusButton, 
   NexusCard, 
@@ -24,14 +25,17 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Trash, Edit, Eye, Database, FileText } from 'lucide-react';
+import { Plus, Trash, Edit, Eye, Database, FileText, Layout } from 'lucide-react';
 import { FilterParam } from '@/types/builder';
+import { AVAILABLE_ICONS, IconName } from '@/types/nav';
+import { DynamicIcon } from '@/components/DynamicIcon';
 
 export default function ViewsPage() {
   const navigate = useNavigate();
   const { currentTenant } = useTenant();
-  const { pages, loading, createPage, softDeletePage } = usePages();
+  const { pages, loading, createPage, softDeletePage, updatePage } = usePages();
   const { dataSources } = useDataSources();
+  const { withOrg } = useOrgPath();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newPage, setNewPage] = useState({
@@ -39,10 +43,20 @@ export default function ViewsPage() {
     slug: '',
     has_filters: false,
     data_source_id: '',
+    icon: 'file' as IconName,
+    parent_page_id: '',
   });
   const [filterParams, setFilterParams] = useState<FilterParam[]>([]);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editPage, setEditPage] = useState({
+    title: '',
+    slug: '',
+    icon: 'file' as IconName,
+    parent_page_id: '',
+  });
 
   const handleCreate = async () => {
     if (!newPage.title || !newPage.slug) return;
@@ -60,16 +74,18 @@ export default function ViewsPage() {
       const page = await createPage({
         title: newPage.title,
         slug,
+        icon: newPage.icon,
         has_filters: newPage.has_filters,
         filter_params: newPage.has_filters ? filterParams : [],
         data_source_id: newPage.data_source_id || null,
+        parent_page_id: newPage.parent_page_id || null,
       });
 
       if (page) {
         setDialogOpen(false);
-        setNewPage({ title: '', slug: '', has_filters: false, data_source_id: '' });
+        setNewPage({ title: '', slug: '', has_filters: false, data_source_id: '', icon: 'file', parent_page_id: '' });
         setFilterParams([]);
-        navigate(`/views/${page.id}/edit`);
+        navigate(withOrg(`/views/${page.id}/edit`));
       }
     } catch (err: any) {
       if (err.message?.includes('duplicate')) {
@@ -85,6 +101,46 @@ export default function ViewsPage() {
   const handleDelete = async (id: string) => {
     if (confirm('Excluir esta página? (soft delete - pode ser restaurada)')) {
       await softDeletePage(id);
+    }
+  };
+
+  const openEditDialog = (pageId: string) => {
+    const target = pages.find((p) => p.id === pageId);
+    if (!target) return;
+    setError(null);
+    setEditingId(pageId);
+    setEditPage({
+      title: target.title,
+      slug: target.slug,
+      icon: (target.icon || 'file') as IconName,
+      parent_page_id: target.parent_page_id || '',
+    });
+    setEditOpen(true);
+  };
+
+  const handleUpdateMeta = async () => {
+    if (!editingId) return;
+    if (!editPage.title || !editPage.slug) {
+      setError('Título e slug são obrigatórios.');
+      return;
+    }
+    const cleanedSlug = editPage.slug
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+
+    try {
+      await updatePage(editingId, {
+        title: editPage.title,
+        slug: cleanedSlug,
+        icon: editPage.icon,
+        parent_page_id: editPage.parent_page_id || null,
+      });
+      setEditOpen(false);
+      setEditingId(null);
+    } catch (err: any) {
+      setError('Erro ao atualizar página.');
     }
   };
 
@@ -148,6 +204,50 @@ export default function ViewsPage() {
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label>Ícone</Label>
+                  <Select
+                    value={newPage.icon}
+                    onValueChange={(v) => setNewPage({ ...newPage, icon: v as IconName })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {AVAILABLE_ICONS.map((icon) => (
+                        <SelectItem key={icon} value={icon}>
+                          <div className="flex items-center gap-2">
+                            <DynamicIcon name={icon} className="h-4 w-4" />
+                            <span>{icon}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Subview de</Label>
+                  <Select
+                    value={newPage.parent_page_id || 'none'}
+                    onValueChange={(v) =>
+                      setNewPage({ ...newPage, parent_page_id: v === 'none' ? '' : v })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhuma (view principal)</SelectItem>
+                      {pages
+                        .filter((p) => !p.parent_page_id)
+                        .map((page) => (
+                          <SelectItem key={page.id} value={page.id}>
+                            {page.title}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
                   <Label>Slug</Label>
                   <Input
                     value={newPage.slug}
@@ -155,7 +255,7 @@ export default function ViewsPage() {
                     placeholder="minha-pagina"
                   />
                   <p className="text-xs text-muted-foreground">
-                    URL: /views/{newPage.slug || 'slug'}
+                    URL: {withOrg(`/views/${newPage.slug || 'slug'}`)}
                   </p>
                 </div>
 
@@ -287,7 +387,14 @@ export default function ViewsPage() {
                 <NexusTableBody>
                   {pages.map((page) => (
                     <NexusTableRow key={page.id}>
-                      <NexusTableCell className="font-medium">{page.title}</NexusTableCell>
+                      <NexusTableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <span>{page.title}</span>
+                          {page.parent_page_id && (
+                            <NexusBadge variant="muted">Subview</NexusBadge>
+                          )}
+                        </div>
+                      </NexusTableCell>
                       <NexusTableCell className="font-mono text-sm text-muted-foreground">
                         /{page.slug}
                       </NexusTableCell>
@@ -307,10 +414,18 @@ export default function ViewsPage() {
                           <NexusButton
                             size="icon-sm"
                             variant="ghost"
-                            onClick={() => navigate(`/views/${page.id}/edit`)}
-                            title="Editar"
+                            onClick={() => openEditDialog(page.id)}
+                            title="Editar detalhes"
                           >
                             <Edit className="h-4 w-4" />
+                          </NexusButton>
+                          <NexusButton
+                            size="icon-sm"
+                            variant="ghost"
+                            onClick={() => navigate(withOrg(`/views/${page.id}/edit`))}
+                            title="Editar conteúdo"
+                          >
+                            <Layout className="h-4 w-4" />
                           </NexusButton>
                           <NexusButton
                             size="icon-sm"
@@ -318,7 +433,7 @@ export default function ViewsPage() {
                             asChild
                             title="Visualizar"
                           >
-                            <Link to={`/views/${page.slug}`}>
+                            <Link to={withOrg(`/views/${page.slug}`)}>
                               <Eye className="h-4 w-4" />
                             </Link>
                           </NexusButton>
@@ -353,11 +468,98 @@ export default function ViewsPage() {
           </NexusCardHeader>
           <NexusCardContent>
             <NexusButton variant="outline" asChild>
-              <Link to="/data-sources">Gerenciar Data Sources</Link>
+              <Link to={withOrg('/data-sources')}>Gerenciar Data Sources</Link>
             </NexusButton>
           </NexusCardContent>
         </NexusCard>
       </div>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Editar Página</DialogTitle>
+            <DialogDescription>
+              Atualize o nome, slug e ícone da página
+            </DialogDescription>
+          </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Título</Label>
+                  <Input
+                    value={editPage.title}
+                onChange={(e) => setEditPage({ ...editPage, title: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Ícone</Label>
+              <Select
+                value={editPage.icon}
+                onValueChange={(v) => setEditPage({ ...editPage, icon: v as IconName })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  {AVAILABLE_ICONS.map((icon) => (
+                    <SelectItem key={icon} value={icon}>
+                      <div className="flex items-center gap-2">
+                        <DynamicIcon name={icon} className="h-4 w-4" />
+                        <span>{icon}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Subview de</Label>
+                  <Select
+                    value={editPage.parent_page_id || 'none'}
+                    onValueChange={(v) =>
+                      setEditPage({ ...editPage, parent_page_id: v === 'none' ? '' : v })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhuma (view principal)</SelectItem>
+                      {pages
+                        .filter((p) => !p.parent_page_id || p.id === editingId)
+                        .map((page) => (
+                          <SelectItem key={page.id} value={page.id}>
+                            {page.title}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+            <div className="space-y-2">
+              <Label>Slug</Label>
+              <Input
+                value={editPage.slug}
+                onChange={(e) => setEditPage({ ...editPage, slug: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">
+                URL: {withOrg(`/views/${editPage.slug || 'slug'}`)}
+              </p>
+            </div>
+            {error && (
+              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                {error}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <NexusButton variant="outline" onClick={() => setEditOpen(false)}>
+              Cancelar
+            </NexusButton>
+            <NexusButton onClick={handleUpdateMeta}>
+              Salvar
+            </NexusButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

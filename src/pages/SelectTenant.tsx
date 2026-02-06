@@ -26,7 +26,10 @@ export default function SelectTenantPage() {
   // If user has only one tenant and NO current selection, auto-select
   if (userTenants.length === 1 && !currentTenant) {
     setCurrentTenant(userTenants[0].tenant_id);
-    return <Navigate to="/dashboard" replace />;
+    if (userTenants[0].tenant?.slug) {
+      return <Navigate to={`/${userTenants[0].tenant.slug}/dashboard`} replace />;
+    }
+    return <Navigate to="/select-tenant" replace />;
   }
 
   // If user has no tenants
@@ -51,8 +54,13 @@ export default function SelectTenantPage() {
   }
 
   const handleSelect = (tenantId: string) => {
+    const membership = userTenants.find((m) => m.tenant_id === tenantId);
     setCurrentTenant(tenantId);
-    navigate('/dashboard');
+    if (membership?.tenant?.slug) {
+      navigate(`/${membership.tenant.slug}/dashboard`);
+    } else {
+      navigate('/select-tenant');
+    }
   };
 
   const getRoleBadge = (role: string) => {
